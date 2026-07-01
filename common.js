@@ -1,4 +1,22 @@
-// Debug function to check Firebase initialization
+// Add favicon to all pages
+function addFavicon() {
+    const links = [
+        { rel: 'icon', type: 'image/x-icon', href: 'favicon.ico' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: 'favicon-16x16.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: 'favicon-32x32.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: 'apple-touch-icon.png' }
+    ];
+    
+    links.forEach(linkData => {
+        const link = document.createElement('link');
+        Object.keys(linkData).forEach(key => {
+            link[key] = linkData[key];
+        });
+        document.head.appendChild(link);
+    });
+    console.log('Favicon added successfully!');
+}
+
 function debugFirebaseSetup() {
     console.log('=== FIREBASE DEBUG INFO ===');
     console.log('Firebase app initialized:', firebase.apps.length > 0);
@@ -2452,6 +2470,7 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 function initCommon() {
+    addFavicon();
     loadGuestData();
     initOrderTracking();
     loadFooter();
