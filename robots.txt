@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /profile.html
+Disallow: /dashboard.html
+Disallow: /orders.html
+Disallow: /trackorder.html
+Disallow: /checkout.html
+Disallow: /customer.html
+Disallow: /site-admin.html
+
+Sitemap: https://www.hexahoney.in/sitemap.xml
