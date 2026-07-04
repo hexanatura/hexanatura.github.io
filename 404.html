@@ -1,362 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 Glitch Effect</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 - Page Not Found | Natura Honey</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Manrope:wght@300;400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root{
+      --surface: rgba(255,249,241,0.94);
+      --text: #3f291f;
+      --muted: #7e6253;
+      --accent-dark: #8c5c1e;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Manrope',sans-serif;
+      background:radial-gradient(circle at 20% 20%,#fff7eb 0%,#f8e8d8 38%,#f0dcc7 72%);
+      color:var(--text);
+      display:flex;align-items:center;justify-content:center;
+      min-height:100vh;padding:1.5rem;
+    }
+    .card{
+      width:min(100%,980px);
+      background:var(--surface);
+      border-radius:40px;
+      padding:clamp(2rem,3.5vw,3.6rem);
+      text-align:center;
+      box-shadow:0 28px 60px rgba(84,43,28,0.12);
+    }
 
-        body {
-            background: #000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+    /* non-projecting, larger logo */
+    .logo-wrap{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:7.2rem; /* desktop default */
+      height:7.2rem;
+      border-radius:50%;
+      background:linear-gradient(135deg,#f5d38c,#d8a11b);
+      margin:0 auto 1rem;
+      box-shadow:0 12px 30px rgba(84,43,28,0.14), inset 0 2px 0 rgba(255,255,255,0.6);
+    }
+    .logo-wrap img{ width:3.8rem; height:auto; display:block; }
 
-        .full-page-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
+    .subtitle{
+      font-family:'Quicksand',sans-serif;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:clamp(1.1rem,2vw,1.6rem);
+      color:var(--text);
+      margin-bottom:.35rem;
+    }
+    .title{
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(4.2rem,10vw,7.2rem);
+      line-height:0.92;
+      color:#4b241c;
+      margin:0.1rem 0;
+    }
+    .copy{
+      max-width:740px;margin:1rem auto 0;
+      color:var(--muted);
+      font-size:clamp(0.98rem,1.6vw,1.18rem);
+      line-height:1.8;
+    }
 
-        .block404 {
-            position: relative;
-            background-image: url(https://imgur.com/eHVyWTM.jpg);
-            background-size: cover;
-            background-position: center;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            cursor: pointer;
-        }
+    .actions{margin-top:1.8rem;display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap}
+    .btn{
+      min-width:180px;padding:0.9rem 1.6rem;border-radius:999px;text-decoration:none;font-weight:700;
+      display:inline-flex;align-items:center;gap:.6rem;font-size:0.98rem;
+    }
+    .primary{background:linear-gradient(135deg,#c28512,#7a3c2e);color:#fff;box-shadow:0 12px 26px rgba(123,54,38,0.18)}
+    .secondary{background:transparent;color:#7a3c2e;border:2px solid rgba(122,58,46,0.12)}
 
-        .t404 {
-            position: absolute;
-            width: 364px;
-            height: 146px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-image: url(https://imgur.com/KPZo9YX.png);
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 10;
-        }
+    .support{margin-top:1.6rem;color:var(--muted);font-size:0.98rem}
+    .footer{margin-top:1.8rem;color:rgba(83,63,56,0.7);font-size:.78rem;text-transform:uppercase;letter-spacing:.12em}
 
-        .obj {
-            width: 204px;
-            height: 209px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: animation-404 6s infinite ease-in-out;
-            z-index: 5;
-        }
+    /* tablet */
+    @media (max-width:1024px){
+      .logo-wrap{width:6.4rem;height:6.4rem}
+      .logo-wrap img{width:3.4rem}
+      .title{font-size:clamp(3.8rem,9.4vw,6.4rem)}
+    }
 
-        .obj img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        @keyframes animation-404 {
-            0%, 100% {
-                transform: translate(-50%, -50%) rotate(0);
-            }
-            50% {
-                transform: translate(-53%, -42%) rotate(-5deg);
-            }
-        }
-
-        .waves {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: url(https://imgur.com/eHVyWTM.jpg);
-            background-size: cover;
-            background-position: center;
-            filter: url("#glitch");
-        }
-
-        .message {
-            position: absolute;
-            bottom: 10%;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: #fff;
-            z-index: 15;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .message h2 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
-        }
-
-        .message p {
-            font-size: 1.2rem;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.5;
-        }
-
-        .message a {
-            color: #00ffff;
-            text-decoration: none;
-            font-weight: bold;
-            border-bottom: 1px solid #00ffff;
-            transition: all 0.3s ease;
-        }
-
-        .message a:hover {
-            color: #ff00ff;
-            border-bottom-color: #ff00ff;
-        }
-
-        .controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 20;
-            display: flex;
-            gap: 10px;
-        }
-
-        .control-btn {
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: 1px solid #555;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .control-btn:hover {
-            background-color: rgba(50, 50, 50, 0.9);
-            border-color: #00ffff;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1200px) {
-            .t404 {
-                width: 300px;
-                height: 120px;
-            }
-            
-            .obj {
-                width: 180px;
-                height: 185px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .t404 {
-                width: 250px;
-                height: 100px;
-            }
-            
-            .obj {
-                width: 150px;
-                height: 155px;
-            }
-            
-            .message h2 {
-                font-size: 2rem;
-            }
-            
-            .message p {
-                font-size: 1rem;
-                padding: 0 10px;
-            }
-            
-            .controls {
-                top: 10px;
-                right: 10px;
-                flex-direction: column;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .t404 {
-                width: 200px;
-                height: 80px;
-            }
-            
-            .obj {
-                width: 120px;
-                height: 125px;
-            }
-            
-            .message {
-                bottom: 5%;
-            }
-            
-            .message h2 {
-                font-size: 1.5rem;
-            }
-            
-            .message p {
-                font-size: 0.9rem;
-            }
-        }
-
-        /* Fullscreen specific styles */
-        :fullscreen .full-page-container {
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        :-webkit-full-screen .full-page-container {
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        :-moz-full-screen .full-page-container {
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
+    /* mobile */
+    @media (max-width:560px){
+      .card{padding:1.6rem;border-radius:28px}
+      .logo-wrap{width:6.4rem;height:6.4rem;margin-bottom:.8rem}
+      .logo-wrap img{width:3.6rem}
+      .title{font-size:clamp(2.8rem,18vw,4.8rem)}
+      .actions{flex-direction:column}
+      .btn{width:100%;min-width:0;justify-content:center;padding:.85rem 1rem}
+    }
+  </style>
 </head>
 <body>
-    <div class="full-page-container">
-
-        
-        <div class="block404" id="glitchContainer">
-            <div class="waves"></div>
-            <div class="obj">
-                <img src="https://imgur.com/w0Yb4MX.png" alt="Glitch Object">
-            </div>
-            <div class="t404"></div>
-
-            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="position: absolute; width: 0; height: 0;">
-                <defs>
-                    <filter id="glitch">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.01 0.03" numOctaves="1" result="warp" id="turb"/>
-                        <feColorMatrix in="warp" result="huedturb" type="hueRotate" values="90">
-                            <animate attributeType="XML" attributeName="values" values="0;180;360" dur="3s" repeatCount="indefinite"/>
-                        </feColorMatrix>
-                        <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="50" in="SourceGraphic" in2="huedturb"/>
-                    </filter>
-                </defs>
-            </svg>
-        </div>
+  <main class="card" role="main" aria-labelledby="status">
+    <div class="logo-wrap" aria-hidden="true">
+      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119" alt="Natura Honey logo" />
     </div>
 
-    <script>
-        // Fullscreen functionality
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const glitchContainer = document.getElementById('glitchContainer');
-        const infoBtn = document.getElementById('infoBtn');
-        const message = document.getElementById('message');
-        const goHomeLink = document.getElementById('goHome');
-        
-        let isFullscreen = false;
-        let showMessage = true;
-        
-        // Toggle fullscreen
-        fullscreenBtn.addEventListener('click', () => {
-            if (!isFullscreen) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen();
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen();
-                } else if (document.documentElement.msRequestFullscreen) {
-                    document.documentElement.msRequestFullscreen();
-                }
-                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
-            }
-            isFullscreen = !isFullscreen;
-        });
-        
-        // Toggle info message
-        infoBtn.addEventListener('click', () => {
-            showMessage = !showMessage;
-            message.style.display = showMessage ? 'block' : 'none';
-            infoBtn.innerHTML = showMessage ? 
-                '<i class="fas fa-eye-slash"></i> Hide Info' : 
-                '<i class="fas fa-info-circle"></i> Show Info';
-        });
-        
-        // Go home link
-        goHomeLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            alert("In a real application, this would redirect to the homepage. For now, let's just enjoy the glitch effect!");
-        });
-        
-        // Random glitch intensity on click
-        glitchContainer.addEventListener('click', () => {
-            // Create a temporary stronger glitch effect
-            const filter = document.querySelector('#turb');
-            const originalBaseFreq = filter.getAttribute('baseFrequency');
-            
-            // Increase turbulence for a moment
-            filter.setAttribute('baseFrequency', '0.05 0.1');
-            
-            // Return to normal after 0.5 seconds
-            setTimeout(() => {
-                filter.setAttribute('baseFrequency', originalBaseFreq);
-            }, 500);
-        });
-        
-        // Handle fullscreen change events
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
-        
-        function handleFullscreenChange() {
-            isFullscreen = !!(document.fullscreenElement || 
-                             document.webkitFullscreenElement || 
-                             document.msFullscreenElement);
-            
-            fullscreenBtn.innerHTML = isFullscreen ? 
-                '<i class="fas fa-compress"></i> Exit Fullscreen' : 
-                '<i class="fas fa-expand"></i> Fullscreen';
-        }
-        
-        // Add keyboard controls
-        document.addEventListener('keydown', (e) => {
-            // Toggle info with 'i' key
-            if (e.key === 'i' || e.key === 'I') {
-                infoBtn.click();
-            }
-            
-            // Toggle fullscreen with 'f' key
-            if (e.key === 'f' || e.key === 'F') {
-                fullscreenBtn.click();
-            }
-            
-            // Escape fullscreen with Escape key
-            if (e.key === 'Escape' && isFullscreen) {
-                fullscreenBtn.click();
-            }
-        });
-    </script>
+    <div class="subtitle">404 — Lost in the Hive</div>
+    <h1 id="status" class="title">Page Not Found</h1>
+
+    <p class="copy">
+      The page you are looking for has wandered off into another garden. Return to our home hive, browse the shop, or contact us and we'll guide you back.
+    </p>
+
+    <nav class="actions" aria-label="primary actions">
+      <a href="index.html" class="btn primary"><i class="fas fa-arrow-left"></i> Back to Home</a>
+      <a href="shop.html" class="btn secondary"><i class="fas fa-shopping-bag"></i> Browse Shop</a>
+      <a href="contact.html" class="btn secondary"><i class="fas fa-envelope"></i> Contact Us</a>
+    </nav>
+
+    <div class="support">Need help? <a href="contact.html">Reach out to our beekeepers</a></div>
+    <div class="footer">&copy; 2025 Natura Honey — Pure since 1993</div>
+  </main>
 </body>
 </html>
