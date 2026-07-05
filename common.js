@@ -147,7 +147,7 @@ const likeIcon = document.getElementById('likeIcon');
 const likeCount = document.getElementById('likeCount');
 const cartIcon = document.getElementById('cartIcon');
 const cartCount = document.getElementById('cartCount');
-const whatsappIcon = document.getElementById('whatsappIcon');
+const Icon = document.getElementById('Icon');
 const userIcon = document.getElementById('userIcon');
 const userDropdown = document.getElementById('userDropdown');
 const profileLink = document.getElementById('profileLink');
@@ -1925,7 +1925,7 @@ function removeFromCart(productId) {
 }
 
 whatsappIcon.addEventListener('click', () => {
-    const phoneNumber = " ";
+    const phoneNumber = "+91 94959 28394";
     const message = "Hello, I'm interested in your honey products!";
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
