@@ -216,7 +216,7 @@ function handleContactFormSubmission() {
             
             // Fallback: Try to send via email API or show alternative contact methods
             if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-                showFormErrorMessage('Network issue. Please try again or contact us directly at info@hexaanatura.com');
+                showFormErrorMessage('Network issue. Please try again or contact us directly at info@hexahoney.in');
             } else {
                 showFormErrorMessage('Error submitting form. Please try again or contact us directly.');
             }
