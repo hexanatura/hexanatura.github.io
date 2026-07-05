@@ -1925,10 +1925,10 @@ function removeFromCart(productId) {
 }
 
 whatsappIcon.addEventListener('click', () => {
-    const phoneNumber = "+91 94959 28394";
+    const phoneNumber = "919495928394"; 
     const message = "Hello, I'm interested in your honey products!";
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
 });
 
 closeLogin.addEventListener('click', () => {
