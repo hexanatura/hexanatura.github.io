@@ -1210,7 +1210,7 @@ async function initializeRazorpayPayment(orderData, amount, tempOrderId) {
         
         try {
             // Try Firebase Function
-            const createOrder = firebase.functions().httpsCallable('createRazorpayOrder');
+const createOrder = functions.httpsCallable('createRazorpayOrder');
             createOrderResponse = await createOrder({
                 amount: amount,
                 currency: 'INR',
@@ -1222,12 +1222,12 @@ async function initializeRazorpayPayment(orderData, amount, tempOrderId) {
                 }
             });
             
-            console.log('Firebase Function response:', createOrderResponse.data);
+createOrderResponse = createOrderResponse.data;
             
-        } catch (firebaseError) {
-            console.warn('Firebase Function failed:', firebaseError);
-            createOrderResponse = await createRazorpayOrderDirect(amount, orderData.orderId, tempOrderId);
-        }
+     } catch (firebaseError) {
+    console.error('Firebase Function failed:', firebaseError);
+    throw new Error('Payment service unavailable. Please try again.');
+}
         
         if (!createOrderResponse || !createOrderResponse.orderId) {
             throw new Error('Failed to create Razorpay order');
