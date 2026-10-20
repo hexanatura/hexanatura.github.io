@@ -5888,7 +5888,6 @@
     }
 
   </style>
-  <link rel="stylesheet" href="shared-header.css" />
   <style>
     #mainContent .shop-controls {
       display: grid !important;
@@ -6514,14 +6513,16 @@
     }
 
     #filterSidebar {
-      width: min(340px, calc(100vw - 24px)) !important;
+      width: min(300px, calc(100vw - 32px)) !important;
       z-index: 1201 !important;
       max-height: 100vh;
       max-height: 100dvh;
       box-sizing: border-box;
       padding: 0 18px 22px !important;
+      border-right: 1px solid rgba(103, 55, 46, 0.1);
+      border-radius: 0 18px 18px 0;
       background: #fffdf8;
-      box-shadow: 12px 0 32px rgba(35, 25, 20, 0.2);
+      box-shadow: 8px 0 24px rgba(35, 25, 20, 0.16);
       overscroll-behavior: contain;
       left: -105% !important;
       transition: left 0.28s ease, visibility 0.28s ease, opacity 0.28s ease;
@@ -6671,6 +6672,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="shared-header.css" />
 </head>
 <body>
   <!-- Notification Bar -->

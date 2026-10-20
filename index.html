@@ -3449,6 +3449,54 @@
       align-items: center;
       margin-top: 0;
     }
+
+    #mainContent > .banner-wrapper:first-child {
+      padding-bottom: 68px;
+    }
+
+    .scroll-cue {
+      position: absolute;
+      z-index: 10;
+      bottom: 4px;
+      left: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      color: #5f2b27;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      opacity: 0.55;
+      text-decoration: none;
+      text-transform: uppercase;
+      transform: translateX(-50%);
+      animation: scrollCueFloat 1.8s ease-in-out infinite;
+    }
+
+    #mainContent > .banner-wrapper:first-child > .banner-overlay-outside {
+      z-index: 30 !important;
+    }
+
+    .scroll-cue i {
+      font-size: 20px;
+    }
+
+    .scroll-cue:focus-visible {
+      border-radius: 6px;
+      outline: 2px solid #fff8e9;
+      outline-offset: 5px;
+    }
+
+    @keyframes scrollCueFloat {
+      0%, 100% {
+        transform: translate(-50%, 0);
+      }
+      50% {
+        transform: translate(-50%, -7px);
+      }
+    }
     
 .banner-overlay-outside {
   position: absolute;
@@ -3628,10 +3676,10 @@
     }
     .circle-title {
       margin-top: 15px;
-      font-family: 'Nirmala UI', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-      letter-spacing: 1.5px;
+      font-family: 'Quicksand', 'Nirmala UI', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       color: #333;
     }
@@ -9727,12 +9775,27 @@
         display: none;
       }
 
+      .scroll-cue {
+        animation: none;
+      }
+
       #mainContent > .circle-images .circle-image-wrap:hover {
         transform: none;
         filter: none;
       }
     }
+
+    html.scroll-smooth {
+      scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.scroll-smooth {
+        scroll-behavior: auto;
+      }
+    }
   </style>
+  <link rel="stylesheet" href="shared-header.css" />
  </head>
 <body>
   <!-- Notification Bar -->
@@ -9919,9 +9982,13 @@
         <div class="banner-row slide-left mobile-banner-row" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
       </div>
+      <a class="scroll-cue" href="#categories" aria-label="Scroll down to product categories">
+        <span>Scroll to explore</span>
+        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+      </a>
     </div>
 
-    <div class="circle-images" role="list" aria-label="Product categories with circular images">
+    <div class="circle-images" id="categories" role="list" aria-label="Product categories with circular images">
       <div class="circle-item" role="listitem">
         <div class="circle-image-wrap">
           <img src="https://ik.imagekit.io/hexaanatura/sweetner.png?updatedAt=1757008552752" alt="Close-up image of natural sweetener honey dripping from a wooden honey dipper into a glass jar" />

@@ -199,19 +199,22 @@
 }
 
 #navBar .logo {
-  position: static !important;
-  z-index: auto;
+  position: absolute !important;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
   display: flex;
+  width: clamp(92px, 9vw, 120px);
   justify-content: center;
-  transform: none !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 #navBar .logo img {
   display: block;
-  width: auto !important;
-  height: 64px;
-  max-width: none;
-  max-height: none;
+  width: 100% !important;
+  height: auto;
+  max-width: 120px;
+  max-height: 64px;
   object-fit: contain;
 }
 
@@ -319,11 +322,12 @@
   }
 
   #navBar .logo {
-    justify-self: center;
+    z-index: 1022;
+    width: clamp(84px, 12vw, 108px);
   }
 
   #navBar .logo img {
-    height: 54px;
+    max-height: 56px;
   }
 
   #navBar .nav-icons {
@@ -465,16 +469,10 @@
   }
 
   #navBar .logo {
-    position: absolute !important;
-    top: 50%;
-    left: 50%;
-    width: clamp(72px, 21vw, 84px);
-    transform: translate(-50%, -50%) !important;
+    width: clamp(76px, 21vw, 84px);
   }
 
   #navBar .logo img {
-    width: 100% !important;
-    height: auto;
     max-height: 50px;
   }
 
