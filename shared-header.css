@@ -199,21 +199,22 @@
 }
 
 #navBar .logo {
-  position: absolute !important;
-  top: 50%;
-  left: 50%;
-  z-index: 2;
+  position: static !important;
+  top: auto;
+  left: auto;
+  z-index: auto;
   display: flex;
-  width: clamp(92px, 9vw, 120px);
+  width: clamp(88px, 8vw, 112px);
   justify-content: center;
-  transform: translate(-50%, -50%) !important;
+  transform: none !important;
+  justify-self: center;
 }
 
 #navBar .logo img {
   display: block;
   width: 100% !important;
   height: auto;
-  max-width: 120px;
+  max-width: 112px;
   max-height: 64px;
   object-fit: contain;
 }
@@ -322,8 +323,12 @@
   }
 
   #navBar .logo {
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
     z-index: 1022;
     width: clamp(84px, 12vw, 108px);
+    transform: translate(-50%, -50%) !important;
   }
 
   #navBar .logo img {
