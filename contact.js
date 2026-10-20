@@ -78,6 +78,8 @@ function showMapFallback() {
 
 // Initialize contact form functionality
 function initContactForm() {
+    initSubjectDropdown();
+
     if (contactForm) {
         contactForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -102,6 +104,113 @@ function initContactForm() {
             });
         }
     }
+}
+
+function initSubjectDropdown() {
+    const dropdown = document.getElementById('subjectDropdown');
+    const select = document.getElementById('subject');
+    const trigger = document.getElementById('subjectDropdownTrigger');
+    const valueLabel = document.getElementById('subjectDropdownValue');
+    const label = document.getElementById('subjectLabel');
+    const menu = document.getElementById('subjectDropdownMenu');
+    const options = Array.from(dropdown?.querySelectorAll('.subject-dropdown-option') || []);
+
+    if (!dropdown || !select || !trigger || !valueLabel || !menu || !options.length) return;
+
+    const placeholder = select.options[0]?.textContent || 'Select a subject';
+
+    const syncSelection = () => {
+        const selectedOption = select.options[select.selectedIndex];
+        const hasSelection = Boolean(select.value);
+        valueLabel.textContent = hasSelection ? selectedOption.textContent : placeholder;
+        trigger.classList.toggle('is-placeholder', !hasSelection);
+
+        options.forEach((option) => {
+            option.setAttribute('aria-selected', String(option.dataset.value === select.value));
+        });
+    };
+
+    const closeMenu = (restoreFocus = false) => {
+        dropdown.classList.remove('is-open');
+        dropdown.classList.remove('opens-up');
+        trigger.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) trigger.focus();
+    };
+
+    const openMenu = (focusSelected = false) => {
+        dropdown.classList.add('is-open');
+        dropdown.classList.remove('opens-up');
+        trigger.setAttribute('aria-expanded', 'true');
+        const triggerBounds = trigger.getBoundingClientRect();
+        const menuHeight = menu.getBoundingClientRect().height;
+        const spaceBelow = window.innerHeight - triggerBounds.bottom;
+        const spaceAbove = triggerBounds.top;
+        if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+            dropdown.classList.add('opens-up');
+        }
+        const selectedOption = options.find((option) => option.dataset.value === select.value) || options[0];
+        if (focusSelected) selectedOption.focus();
+    };
+
+    trigger.addEventListener('click', () => {
+        if (trigger.getAttribute('aria-expanded') === 'true') {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    label?.addEventListener('click', () => {
+        trigger.focus();
+        openMenu();
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+            event.preventDefault();
+            openMenu(true);
+        }
+    });
+
+    options.forEach((option, index) => {
+        option.addEventListener('click', () => {
+            select.value = option.dataset.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            syncSelection();
+            closeMenu(true);
+        });
+
+        option.addEventListener('keydown', (event) => {
+            let nextIndex = index;
+            if (event.key === 'ArrowDown') nextIndex = (index + 1) % options.length;
+            else if (event.key === 'ArrowUp') nextIndex = (index - 1 + options.length) % options.length;
+            else if (event.key === 'Home') nextIndex = 0;
+            else if (event.key === 'End') nextIndex = options.length - 1;
+            else if (event.key === 'Escape') {
+                event.preventDefault();
+                closeMenu(true);
+                return;
+            } else if (event.key === 'Tab') {
+                closeMenu();
+                return;
+            } else {
+                return;
+            }
+
+            event.preventDefault();
+            options[nextIndex].focus();
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!dropdown.contains(event.target)) closeMenu();
+    });
+
+    contactForm?.addEventListener('reset', () => {
+        window.setTimeout(syncSelection, 0);
+    });
+
+    syncSelection();
 }
 
 // Contact Form Submission
@@ -216,7 +325,7 @@ function handleContactFormSubmission() {
             
             // Fallback: Try to send via email API or show alternative contact methods
             if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-                showFormErrorMessage('Network issue. Please try again or contact us directly at info@hexahoney.in');
+                showFormErrorMessage('Network issue. Please try again or contact us directly at info@hexaanatura.com');
             } else {
                 showFormErrorMessage('Error submitting form. Please try again or contact us directly.');
             }
@@ -651,4 +760,3 @@ window.ContactPage = {
     handleContactFormSubmission,
     validateContactForm
 };
-

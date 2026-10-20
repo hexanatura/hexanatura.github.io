@@ -28,6 +28,7 @@ const quickViewWishlistBtn = document.querySelector('.quick-view-wishlist');
 let currentCarouselIndex = 0;
 let approvedReviews = [];
 let currentQuickViewProductId = null;
+let carouselAutoplayTimer = null;
 
 // Quick View Modal Functionality
 quickViewClose.addEventListener('click', closeQuickView);
@@ -100,15 +101,15 @@ function updateProductCardWishlistButton(productId, isLiked) {
     if (productCard) {
         const wishlistBtn = productCard.querySelector('.wishlist-btn');
         if (wishlistBtn) {
-            if (isLiked) {
-                wishlistBtn.innerHTML = '<i class="fas fa-heart"></i>';
-                wishlistBtn.style.background = '#ff4d4d';
-                wishlistBtn.style.color = 'white';
-            } else {
-                wishlistBtn.innerHTML = '<i class="far fa-heart"></i>';
-                wishlistBtn.style.background = '#f1f1f1';
-                wishlistBtn.style.color = '#333';
-            }
+            const weight = productCard.querySelector('.product-weight')?.textContent.trim();
+            const category = productCard.dataset.category === 'premium' ? ' PET' : '';
+            wishlistBtn.classList.toggle('is-active', isLiked);
+            wishlistBtn.setAttribute('aria-pressed', String(isLiked));
+            wishlistBtn.setAttribute(
+                'aria-label',
+                `${isLiked ? 'Remove' : 'Add'} Natura Agmark Honey ${weight}${category} ${isLiked ? 'from' : 'to'} wishlist`
+            );
+            wishlistBtn.innerHTML = `<i class="${isLiked ? 'fas' : 'far'} fa-heart" aria-hidden="true"></i>`;
         }
     }
 }
@@ -184,7 +185,8 @@ function initializeProductCards() {
             });
         } else {
             // Disable the button and change text for out of stock products
-            addToCartBtn.textContent = 'Out of Stock';
+            addToCartBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
+            addToCartBtn.setAttribute('aria-label', 'This product is out of stock');
             addToCartBtn.disabled = true;
             addToCartBtn.style.background = '#ccc';
             addToCartBtn.style.color = '#666';
@@ -269,7 +271,8 @@ function setProductOutOfStockIndex(productId, isOutOfStock) {
         
         const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
         if (isOutOfStock) {
-            addToCartBtn.textContent = 'Out of Stock';
+            addToCartBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
+            addToCartBtn.setAttribute('aria-label', 'This product is out of stock');
             addToCartBtn.classList.add('out-of-stock-btn');
             addToCartBtn.disabled = true;
             addToCartBtn.style.background = '#ccc';
@@ -277,7 +280,9 @@ function setProductOutOfStockIndex(productId, isOutOfStock) {
             addToCartBtn.style.cursor = 'not-allowed';
             addToCartBtn.onclick = null;
         } else {
-            addToCartBtn.textContent = 'Add to Cart';
+            const product = products.find(item => item.id === productId);
+            addToCartBtn.innerHTML = '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>';
+            addToCartBtn.setAttribute('aria-label', `Add ${product?.name || 'product'} ${product?.weight || ''} to cart`);
             addToCartBtn.classList.remove('out-of-stock-btn');
             addToCartBtn.disabled = false;
             addToCartBtn.style.background = '';
@@ -303,7 +308,8 @@ function setProductOutOfStockIndex(productId, isOutOfStock) {
     const likeItemBtn = document.querySelector(`.like-item .add-to-cart-btn[data-id="${productId}"]`);
     if (likeItemBtn) {
         if (isOutOfStock) {
-            likeItemBtn.textContent = 'Out of Stock'; // Just text, no icon
+            likeItemBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
+            likeItemBtn.setAttribute('aria-label', 'This product is out of stock');
             likeItemBtn.classList.add('out-of-stock-btn');
             likeItemBtn.disabled = true;
             likeItemBtn.style.background = '#ccc';
@@ -314,7 +320,9 @@ function setProductOutOfStockIndex(productId, isOutOfStock) {
             const newBtn = likeItemBtn.cloneNode(true);
             likeItemBtn.parentNode.replaceChild(newBtn, likeItemBtn);
         } else {
-            likeItemBtn.textContent = 'Add to Cart'; // Just text, no icon
+            const product = products.find(item => item.id === productId);
+            likeItemBtn.innerHTML = '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>';
+            likeItemBtn.setAttribute('aria-label', `Add ${product?.name || 'product'} ${product?.weight || ''} to cart`);
             likeItemBtn.classList.remove('out-of-stock-btn');
             likeItemBtn.disabled = false;
             likeItemBtn.style.background = '';
@@ -335,48 +343,9 @@ window.setProductOutOfStockIndex = setProductOutOfStockIndex;
 
 
 
-// Category Filter Functionality
-const categoryBtns = document.querySelectorAll(".category-btn");
-const productRow = document.getElementById("productRow");
-
-function centerProducts(category) {
-    const visibleProducts = document.querySelectorAll(`.product-card[data-category="${category}"]`);
-    if (visibleProducts.length <= 2) {
-        productRow.classList.add('centered');
-    } else {
-        productRow.classList.remove('centered');
-    }
-}
-
-// Initialize category filtering
-function initializeCategoryFilter() {
+function initializeProductCatalog() {
     document.querySelectorAll('.product-card').forEach(card => {
-        if (card.dataset.category === "premium") {
-            card.style.display = "none";
-        }
-    });
-    centerProducts("crystal");
-
-    categoryBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-            categoryBtns.forEach((b) => {
-                b.classList.remove("active");
-                b.setAttribute("aria-pressed", "false");
-            });
-            btn.classList.add("active");
-            btn.setAttribute("aria-pressed", "true");
-            const category = btn.dataset.category;
-            document.querySelectorAll('.product-card').forEach((card) => {
-                card.style.display = card.dataset.category === category ? "flex" : "none";
-            });
-            centerProducts(category);
-        });
-        btn.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                btn.click();
-            }
-        });
+        card.style.display = "flex";
     });
 }
 
@@ -519,26 +488,44 @@ function generateStarRating(value) {
 }
 
 // Reviews Carousel Functionality
+function getCarouselMetrics() {
+    const firstCard = reviewsContainer.querySelector('.review-card');
+    if (!firstCard) {
+        return { cardsPerView: 1, cardWidth: 0 };
+    }
+
+    const cardStyle = getComputedStyle(firstCard);
+    const cardWidth = firstCard.getBoundingClientRect().width
+        + parseFloat(cardStyle.marginLeft)
+        + parseFloat(cardStyle.marginRight);
+
+    let cardsPerView;
+    if (window.innerWidth <= 767) {
+        cardsPerView = 1;
+    } else if (window.innerWidth <= 1023) {
+        cardsPerView = 2;
+    } else {
+        cardsPerView = Math.max(1, Math.floor(reviewsContainer.clientWidth / cardWidth));
+    }
+
+    return { cardsPerView, cardWidth };
+}
+
 function initializeCarousel() {
     const reviewCards = document.querySelectorAll('.review-card');
     
     // Handle case when no reviews exist
     if (reviewCards.length === 0) {
+        clearInterval(carouselAutoplayTimer);
+        carouselAutoplayTimer = null;
         carouselDots.innerHTML = '';
         return;
     }
     
-    // Calculate cards per view based on screen size
-    let cardsPerView;
-    if (window.innerWidth <= 767) {
-        cardsPerView = 1; // Show one card at a time on mobile
-    } else if (window.innerWidth <= 1023) {
-        cardsPerView = 2; // Show two cards on tablet
-    } else {
-        cardsPerView = Math.floor(reviewsContainer.offsetWidth / (300 + 30));
-    }
+    const { cardsPerView } = getCarouselMetrics();
     
     const totalSlides = Math.ceil(reviewCards.length / cardsPerView);
+    currentCarouselIndex = Math.min(currentCarouselIndex, totalSlides - 1);
     
     carouselDots.innerHTML = '';
     for (let i = 0; i < totalSlides; i++) {
@@ -547,11 +534,13 @@ function initializeCarousel() {
         if (i === 0) dot.classList.add('active');
         dot.addEventListener('click', () => {
             goToSlide(i);
+            resetCarouselAutoplay();
         });
         carouselDots.appendChild(dot);
     }
     
     updateCarousel();
+    resetCarouselAutoplay();
 }
 
 function updateCarousel() {
@@ -559,17 +548,7 @@ function updateCarousel() {
     
     if (reviewCards.length === 0) return;
     
-    let cardsPerView, cardWidth;
-    if (window.innerWidth <= 767) {
-        cardsPerView = 1;
-        cardWidth = 280 + 16; // card width + margin
-    } else if (window.innerWidth <= 1023) {
-        cardsPerView = 2;
-        cardWidth = 320 + 24; // card width + margin
-    } else {
-        cardsPerView = Math.floor(reviewsContainer.offsetWidth / (300 + 30));
-        cardWidth = 300 + 30; // card width + margin
-    }
+    const { cardsPerView, cardWidth } = getCarouselMetrics();
     
     const offset = -currentCarouselIndex * cardWidth * cardsPerView;
     reviewsContainer.style.transform = `translateX(${offset}px)`;
@@ -581,18 +560,68 @@ function updateCarousel() {
 
 function goToSlide(index) {
     const reviewCards = document.querySelectorAll('.review-card');
-    const cardsPerView = Math.floor(reviewsContainer.offsetWidth / (300 + 30));
+    const { cardsPerView } = getCarouselMetrics();
     const maxIndex = Math.ceil(reviewCards.length / cardsPerView) - 1;
     currentCarouselIndex = Math.max(0, Math.min(index, maxIndex));
     updateCarousel();
 }
 
+function resetCarouselAutoplay() {
+    clearInterval(carouselAutoplayTimer);
+    carouselAutoplayTimer = null;
+
+    const totalSlides = carouselDots.children.length;
+    if (totalSlides < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+    }
+
+    carouselAutoplayTimer = window.setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        const nextIndex = currentCarouselIndex + 1;
+        goToSlide(nextIndex < totalSlides ? nextIndex : 0);
+    }, 5000);
+}
+
+function pauseCarouselAutoplay() {
+    clearInterval(carouselAutoplayTimer);
+    carouselAutoplayTimer = null;
+}
+
+function resumeCarouselAutoplay() {
+    if (
+        carouselAutoplayTimer === null
+        && document.visibilityState === 'visible'
+        && !reviewsContainer.matches(':hover')
+        && !reviewsContainer.contains(document.activeElement)
+    ) {
+        resetCarouselAutoplay();
+    }
+}
+
 prevBtn.addEventListener('click', () => {
     goToSlide(currentCarouselIndex - 1);
+    resetCarouselAutoplay();
 });
 
 nextBtn.addEventListener('click', () => {
     goToSlide(currentCarouselIndex + 1);
+    resetCarouselAutoplay();
+});
+
+reviewsContainer.addEventListener('mouseenter', pauseCarouselAutoplay);
+reviewsContainer.addEventListener('mouseleave', resumeCarouselAutoplay);
+reviewsContainer.addEventListener('focusin', pauseCarouselAutoplay);
+reviewsContainer.addEventListener('focusout', (event) => {
+    if (!reviewsContainer.contains(event.relatedTarget)) {
+        resumeCarouselAutoplay();
+    }
+});
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        resumeCarouselAutoplay();
+    } else {
+        pauseCarouselAutoplay();
+    }
 });
 
 // Add touch swipe support for mobile
@@ -610,15 +639,22 @@ reviewsContainer.addEventListener('touchend', (e) => {
 
 function handleSwipe() {
     const swipeThreshold = 50;
+    let changedSlide = false;
     
     if (touchEndX < touchStartX - swipeThreshold) {
         // Swipe left - next slide
         goToSlide(currentCarouselIndex + 1);
+        changedSlide = true;
     }
     
     if (touchEndX > touchStartX + swipeThreshold) {
         // Swipe right - previous slide
         goToSlide(currentCarouselIndex - 1);
+        changedSlide = true;
+    }
+
+    if (changedSlide) {
+        resetCarouselAutoplay();
     }
 }
 
@@ -791,7 +827,7 @@ window.addToLikes = function(productId) {
 
 function initIndexPage() {
     initializeProductCards();
-    initializeCategoryFilter();
+    initializeProductCatalog();
     initializeBannerImages();
     loadApprovedReviews();
 

@@ -6405,14 +6405,15 @@
       color: #7a3731;
     }
   </style>
+  <link rel="stylesheet" href="shared-header.css" />
 </head>
 <body>
   <!-- Notification Bar -->
-  <div class="notification-bar" id="notificationBar"><p>Free shipping on all orders over ₹299! Limited time offer.</p></div>
+  <div class="notification-bar" id="notificationBar" role="region" aria-label="Store announcement"><p><i class="fas fa-truck-fast" aria-hidden="true"></i><span>Free shipping on all orders over ₹299! Limited time offer.</span></p></div>
 
   <!-- Navigation Bar -->
-  <nav id="navBar">
-    <button class="mobile-menu-btn" id="mobileMenuBtn">
+  <nav id="navBar" aria-label="Main navigation">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">
       <i class="fas fa-bars"></i>
     </button>
     <ul class="nav-links" id="navLinks">

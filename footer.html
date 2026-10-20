@@ -66,10 +66,10 @@
 footer {
     background: #556b2f !important;
     color: white !important;
-    padding: 60px 5% !important;
+    padding: 40px 5% !important;
     text-align: center !important;
     position: relative !important;
-    margin-top: 40px !important;
+    margin-top: 28px !important;
     width: 100% !important;
     clear: both !important;
 }
@@ -80,19 +80,19 @@ footer {
     display: flex !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
-    gap: 40px !important;
+    gap: 28px !important;
 }
 
 .footer-column {
     flex: 1 !important;
-    min-width: 250px !important;
+    min-width: 220px !important;
     text-align: left !important;
 }
 
 footer h3 {
     font-family: 'Akira Expanded', sans-serif !important;
-    font-size: 24px !important;
-    margin-bottom: 20px !important;
+    font-size: 20px !important;
+    margin-bottom: 14px !important;
     color: white !important;
 }
 
@@ -100,11 +100,11 @@ footer ul {
     list-style: none !important;
     padding: 0 !important;
     font-family: 'Unbounded', sans-serif !important;
-    font-size: 16px !important;
+    font-size: 14px !important;
 }
 
 footer ul li {
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
 }
 
 footer a {
@@ -246,16 +246,247 @@ footer a:hover {
 /* Mobile Footer Styles */
 @media (max-width: 767px) {
     footer {
-        padding: 30px 5% !important;
-        margin-top: 25px !important;
+        padding: 16px 12px 12px !important;
+        margin-top: 16px !important;
     }
 
     .footer-container {
-        gap: 20px !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 8px !important;
     }
 
     .footer-column {
-        min-width: 100% !important;
+        min-width: 0 !important;
+        text-align: left !important;
+        padding: 0 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.13) !important;
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+    }
+
+    .footer-column > summary {
+        display: flex !important;
+        min-height: 44px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .footer-column > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .footer-column > summary::after {
+        content: "+";
+        color: #ffdb6e;
+        font: 600 22px/1 Arial, sans-serif;
+    }
+
+    .footer-column[open] > summary::after {
+        content: "\2212";
+    }
+
+    .footer-column > summary h3 {
+        margin: 0 !important;
+    }
+
+    .footer-section-content {
+        padding: 0 0 10px;
+    }
+
+    .footer-contact-info,
+    .footer-contact-item,
+    .footer-contact-text {
+        min-width: 0 !important;
+    }
+
+    .footer-contact-text {
+        overflow-wrap: break-word !important;
+    }
+
+    footer h3 {
+        font-size: 13px !important;
+        margin: 0 0 12px !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    footer ul {
+        font-family: Arial, sans-serif !important;
+        font-size: 13px !important;
+    }
+
+    .footer-column:first-child .footer-quick-link-columns {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: start;
+        column-gap: 8px;
+    }
+
+    .footer-column:first-child .footer-quick-link-columns ul {
+        min-width: 0;
+        margin: 0 !important;
+    }
+
+    .footer-column:first-child .footer-quick-link-columns li {
+        margin-bottom: 2px !important;
+    }
+
+    .footer-column:first-child .footer-quick-link-columns a {
+        line-height: 1.3 !important;
+    }
+
+    footer a,
+    .footer-contact-text,
+    .footer-enquiry-item a {
+        font-family: 'Quicksand', sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        line-height: 1.4 !important;
+        letter-spacing: 0.01em !important;
+    }
+
+    footer .footer-section-content a:focus-visible {
+        outline: 2px solid #ffdb6e !important;
+        outline-offset: 3px !important;
+        border-radius: 3px !important;
+    }
+
+    .footer-contact-info {
+        gap: 7px !important;
+        align-items: flex-start !important;
+    }
+
+    .footer-contact-item {
+        gap: 7px !important;
+        justify-content: flex-start !important;
+        align-items: flex-start !important;
+    }
+
+    .footer-contact-icon {
+        font-size: 14px !important;
+        width: 16px !important;
+        margin-top: 0 !important;
+        color: #ffdb6e !important;
+    }
+
+    .footer-contact-text {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        text-align: left !important;
+        margin: 0 !important;
+    }
+
+    .footer-social {
+        margin-top: 12px !important;
+    }
+
+    .footer-social h4 {
+        font-size: 13px !important;
+        margin: 0 0 10px !important;
+        text-align: left !important;
+    }
+
+    .footer-social-icons {
+        gap: 12px !important;
+        font-size: 16px !important;
+        justify-content: flex-start !important;
+    }
+
+    .footer-social-icons a {
+        width: 34px !important;
+        height: 34px !important;
+    }
+
+    .footer-enquiries h4 {
+        display: none !important;
+    }
+
+    .footer-column:nth-child(3) h3 {
+        margin-bottom: 12px !important;
+    }
+
+    .footer-enquiries {
+        margin-top: 0 !important;
+    }
+
+    .footer-enquiries-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .footer-enquiry-item {
+        min-width: 0;
+        min-height: 38px !important;
+        padding: 6px 8px !important;
+        gap: 6px !important;
+        justify-content: flex-start !important;
+        border-radius: 10px !important;
+    }
+
+    .footer-enquiry-item i {
+        flex: 0 0 auto;
+        font-size: 13px !important;
+    }
+
+    .footer-enquiry-item a {
+        font-size: 12px !important;
+        overflow-wrap: anywhere;
+    }
+
+    .footer-watermark {
+        position: relative !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: auto !important;
+        margin: 12px auto 0 !important;
+        text-align: center !important;
+    }
+
+    .footer-watermark img {
+        width: 58px !important;
+    }
+
+    .footer-bottom {
+        margin-top: 10px !important;
+        padding-top: 9px !important;
+        text-align: center !important;
+    }
+
+    .footer-bottom p {
+        margin: 0 !important;
+        font-size: 11px !important;
+        line-height: 1.5 !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .footer-column > summary {
+        list-style: none;
+        cursor: default;
+    }
+
+    .footer-column > summary::-webkit-details-marker {
+        display: none;
+    }
+}
+
+/* Tablet Footer Styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+    footer {
+        padding: 28px 5% !important;
+        margin-top: 22px !important;
+    }
+
+    .footer-container {
+        gap: 18px !important;
+    }
+
+    .footer-column {
+        min-width: 45% !important;
         text-align: left !important;
     }
 
@@ -265,116 +496,11 @@ footer a:hover {
     }
 
     footer ul {
-        font-size: 13px !important;
+        font-size: 14px !important;
     }
 
     footer ul li {
         margin-bottom: 6px !important;
-    }
-
-    .footer-contact-info {
-        gap: 15px !important;
-        align-items: flex-start !important;
-    }
-
-    .footer-contact-item {
-        gap: 6px !important;
-        justify-content: flex-start !important;
-        align-items: flex-start !important;
-    }
-
-    .footer-contact-icon {
-        font-size: 12px !important;
-        width: 12px !important;
-        margin-top: 0 !important;
-    }
-
-    .footer-contact-text {
-        font-size: 13px !important;
-        line-height: 1.1 !important;
-        text-align: left !important;
-        margin: 0 !important;
-    }
-
-    .footer-social h4 {
-        font-size: 14px !important;
-        margin-bottom: 10px !important;
-        text-align: left !important;
-    }
-
-    .footer-social-icons {
-        gap: 10px !important;
-        font-size: 16px !important;
-        justify-content: flex-start !important;
-    }
-
-    .footer-social-icons a {
-        width: 32px !important;
-        height: 32px !important;
-    }
-
-    .footer-enquiries h4 {
-        font-size: 14px !important;
-        margin-bottom: 10px !important;
-        text-align: left !important;
-    }
-
-    .footer-enquiries-list {
-        gap: 6px !important;
-    }
-
-    .footer-enquiry-item {
-        padding: 6px 10px !important;
-        gap: 6px !important;
-        justify-content: flex-start !important;
-    }
-
-    .footer-enquiry-item i {
-        font-size: 12px !important;
-    }
-
-    .footer-enquiry-item a {
-        font-size: 12px !important;
-    }
-
-    .footer-bottom {
-        margin-top: 20px !important;
-        padding-top: 10px !important;
-        text-align: center !important;
-    }
-
-    .footer-bottom p {
-        font-size: 11px !important;
-    }
-}
-
-/* Tablet Footer Styles */
-@media (min-width: 768px) and (max-width: 1023px) {
-    footer {
-        padding: 35px 5% !important;
-        margin-top: 30px !important;
-    }
-
-    .footer-container {
-        gap: 25px !important;
-    }
-
-    .footer-column {
-        min-width: 45% !important;
-        text-align: left !important;
-    }
-
-    footer h3 {
-        font-size: 17px !important;
-        margin-bottom: 15px !important;
-    }
-
-    footer ul {
-        font-size: 14px !important;
-    }
-
-    footer ul li {
-        margin-bottom: 8px !important;
     }
 
     .footer-contact-info {
@@ -443,8 +569,8 @@ footer a:hover {
     }
 
     .footer-bottom {
-        margin-top: 30px !important;
-        padding-top: 15px !important;
+        margin-top: 22px !important;
+        padding-top: 12px !important;
         text-align: left !important;
     }
 
@@ -456,91 +582,102 @@ footer a:hover {
 /* Desktop Footer Styles */
 @media (min-width: 1024px) {
     .footer-contact-info {
-        gap: 15px !important;
-    }
-
-    .footer-contact-text {
-        line-height: 1.15 !important;
+        gap: 12px !important;
     }
 
     .footer-contact-item {
-        gap: 8px !important;
+        gap: 10px !important;
+    }
+
+    .footer-contact-text {
+        font-size: 15px !important;
+        line-height: 1.5 !important;
     }
 }
 
 #footer-placeholder {
     display: block;
     width: 100%;
-    margin-top: 60px;
+    margin-top: 28px;
 }
 
 </style>
 
 <footer>
     <div class="footer-container">
-        <div class="footer-column">
-            <h3>Quick Links</h3>
-            <ul>
-                <li><a href="https://www.amazon.in/l/27943762031?me=A1BUHQSZBQX1TK&ref_=ssf_share">Amazon Store</a></li>
-                <li><a href="privacy-policy.html">Privacy Policy</a></li>
-                <li><a href="terms-of-service.html">Terms of Services</a></li>
-                <li><a href="shipping-delivery-policy.html">Shipping/Delivery Policy</a></li>
-                <li><a href="refund-cancellation-policy">Refund/Cancellation Policy</a></li>
-            </ul>
+        <details class="footer-column" open>
+            <summary><h3>Quick Links</h3></summary>
+            <div class="footer-section-content">
+                <div class="footer-quick-link-columns">
+                    <ul>
+                        <li><a href="https://www.amazon.in/l/27943762031?me=A1BUHQSZBQX1TK&ref_=ssf_share">Amazon Store</a></li>
+                        <li><a href="terms-of-service.html">Terms of Services</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    </ul>
+                    <ul>
+                        <li><a href="shipping-delivery-policy.html">Shipping/Delivery Policy</a></li>
+                        <li><a href="refund-cancellation-policy.html">Refund/Cancellation Policy</a></li>
+                    </ul>
+                </div>
 
-            <div class="footer-social">
-                <h4>Follow Us</h4>
-                <div class="footer-social-icons">
-                    <a href="https://www.facebook.com/naturaagmarkhoney/"><i class="fab fa-facebook-f"></i></a>
-                    <a href="https://www.instagram.com/naturahoneyofficial_"><i class="fab fa-instagram"></i></a>
-                    <a href="https://www.youtube.com/@NaturaAgmarkHoney"><i class="fab fa-youtube"></i></a>
-                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-column">
-            <h3>Contact Us</h3>
-            <div class="footer-contact-info">
-                <div class="footer-contact-item">
-                    <i class="fas fa-phone footer-contact-icon"></i>
-                    <div class="footer-contact-text">+91 6282 904614</div>
-                </div>
-                <div class="footer-contact-item">
-                    <i class="fas fa-envelope footer-contact-icon"></i>
-                    <div class="footer-contact-text">info@hexahoney.in</div>
-                </div>
-                <div class="footer-contact-item">
-                    <i class="fas fa-map-marker-alt footer-contact-icon"></i>
-                    <div class="footer-contact-text">Thalassery, Kannur, Kerala</div>
-                </div>
-                <div class="footer-contact-item">
-                    <i class="fas fa-clock footer-contact-icon"></i>
-                    <div class="footer-contact-text">Mon-Sat: 8:00 AM - 5:00 PM</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-column">
-            <h3>Enquiries</h3>
-
-            <div class="footer-enquiries">
-                <div class="footer-enquiries-list">
-                    <div class="footer-enquiry-item">
-                        <i class="fas fa-boxes"></i>
-                        <a href="contact.html">Bulk Orders</a>
-                    </div>
-                    <div class="footer-enquiry-item">
-                        <i class="fas fa-handshake"></i>
-                        <a href="contact.html">Become Our Distributor</a>
-                    </div>
-                     <div class="footer-enquiry-item">
-                        <i class="fas fa-shipping-fast"></i>
-                        <a href="trackorder.html">Track Your Order</a>
+                <div class="footer-social">
+                    <h4>Follow Us</h4>
+                    <div class="footer-social-icons">
+                        <a href="https://www.facebook.com/share/1FXabR7de4/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Follow Natura Honey on Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com/naturahoneyofficial_?psln=MTZqaHJjY2cxNHJ1ZA%3D%3D&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Follow Natura Honey on Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/company/hexa-apiarium-pvt-ltd/" target="_blank" rel="noopener noreferrer" aria-label="Follow Hexa Apiarium on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="https://wa.me/919495928394" target="_blank" rel="noopener noreferrer" aria-label="Contact Natura Honey on WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                        <a href="https://www.youtube.com/@NaturaAgmarkHoney" target="_blank" rel="noopener noreferrer" aria-label="Follow Natura Honey on YouTube"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
             </div>
-        </div>
+        </details>
+
+        <details class="footer-column" open>
+            <summary><h3>Contact Us</h3></summary>
+            <div class="footer-section-content">
+                <div class="footer-contact-info">
+                    <div class="footer-contact-item">
+                        <i class="fas fa-phone footer-contact-icon"></i>
+                        <div class="footer-contact-text">+91 6282 904614</div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-envelope footer-contact-icon"></i>
+                        <div class="footer-contact-text">hexanatura.info@gmail.com</div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-map-marker-alt footer-contact-icon"></i>
+                        <div class="footer-contact-text">Thalassery, Kannur, Kerala</div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-clock footer-contact-icon"></i>
+                        <div class="footer-contact-text">Mon-Sat: 8:00 AM - 5:00 PM</div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <details class="footer-column" open>
+            <summary><h3>Enquiries</h3></summary>
+            <div class="footer-section-content">
+                <div class="footer-enquiries">
+                    <div class="footer-enquiries-list">
+                        <div class="footer-enquiry-item">
+                            <i class="fas fa-boxes"></i>
+                            <a href="contact.html">Bulk Orders</a>
+                        </div>
+                        <div class="footer-enquiry-item">
+                            <i class="fas fa-handshake"></i>
+                            <a href="contact.html">Become Our Distributor</a>
+                        </div>
+                        <div class="footer-enquiry-item">
+                            <i class="fas fa-shipping-fast"></i>
+                            <a href="trackorder.html">Track Your Order</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
     </div> 
     
     <div class="footer-watermark">

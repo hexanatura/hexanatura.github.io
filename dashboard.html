@@ -2189,6 +2189,94 @@ body {
     }
 }
 
+#mainContent,
+#dashboardBody,
+#dynamicPage {
+    min-width: 0;
+    max-width: 100%;
+}
+
+#dynamicPage :where(input, select, textarea, button, table) {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#dynamicPage :where(.table-wrapper, .table-container) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 992px) {
+    .main-content {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .top-header,
+    .search-bar {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 768px) {
+    #dynamicPage :where(.page-container, .customers-view, .promo-view, .reviews-view, .orders-view, .messages-container) {
+        width: 100%;
+        min-width: 0;
+        padding: 14px;
+        box-sizing: border-box;
+    }
+
+    #dynamicPage :where(.customers-top, .customers-controls, .promo-top, .promo-controls, .reviews-header, .header-actions, .messages-header, .orders-top, .orders-controls) {
+        min-width: 0;
+        max-width: 100%;
+        flex-wrap: wrap;
+    }
+
+    #dynamicPage :where(.customers-card.filter-row, .filter-row, .filters-section) {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    #dynamicPage :where(.form-row, .form-grid) {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #dynamicPage :where(.modal-content, .modal-dialog) {
+        width: calc(100% - 24px);
+        max-width: 680px;
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    #dynamicPage :where(.page-container, .customers-view, .promo-view, .reviews-view, .orders-view, .messages-container) {
+        padding: 10px;
+    }
+
+    #dynamicPage :where(.btn, .btn-primary, .btn-ghost, .btn-icon) {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    #dynamicPage :where(.table-card, .customers-card, .promo-card) {
+        min-width: 0;
+        max-width: 100%;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -2310,13 +2398,19 @@ body {
                     <a href="mailto:hexahoney.info@gmail.com" class="icon-btn">
                         <i class="fas fa-envelope"></i>
                     </a>
-                    <a href="https://www.instagram.com/natura_agmarkhoney/" target="_blank" class="icon-btn">
+                    <a href="https://www.instagram.com/naturahoneyofficial_?psln=MTZqaHJjY2cxNHJ1ZA%3D%3D&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" class="icon-btn">
                         <i class="fab fa-instagram"></i>
                     </a>
-                    <a href="https://facebook.com/NaturaAgmarkHoney" target="_blank" class="icon-btn">
+                    <a href="https://www.facebook.com/share/1FXabR7de4/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="icon-btn">
                         <i class="fab fa-facebook-f"></i>
                     </a>
-                    <a href="https://www.youtube.com/@NaturaAgmarkHoney" target="_blank" class="icon-btn">
+                    <a href="https://www.linkedin.com/company/hexa-apiarium-pvt-ltd/" target="_blank" rel="noopener noreferrer" class="icon-btn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://wa.me/919495928394" target="_blank" rel="noopener noreferrer" class="icon-btn">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="https://www.youtube.com/@NaturaAgmarkHoney" target="_blank" rel="noopener noreferrer" class="icon-btn">
                         <i class="fab fa-youtube"></i>
                     </a>
                 </div>
@@ -2483,7 +2577,7 @@ body {
                         <option value="3">Natura Agmark Honey - 100g</option>
                         <option value="4">Natura Agmark Honey - 50g</option>
                         <option value="5">Natura Agmark Honey - 1Kg</option>
-                        <option value="6">Natura Agmark Honey - Premium Pet 500g</option>
+                        <option value="6">Natura Agmark Honey - PET Pack 500g</option>
                     </select>
                 </div>
 

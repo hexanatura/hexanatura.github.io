@@ -91,7 +91,7 @@ const products = [
     { 
         id: 1, 
         name: "Natura Agmark Honey", 
-        price: 480.00, 
+        price: 420.00, 
         weight: "1Kg",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725",
         category: "crystal"
@@ -99,7 +99,7 @@ const products = [
     { 
         id: 2, 
         name: "Natura Agmark Honey", 
-        price: 260.00, 
+        price: 230.00, 
         weight: "500g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443",
         category: "crystal"
@@ -107,7 +107,7 @@ const products = [
     { 
         id: 3, 
         name: "Natura Agmark Honey", 
-        price: 75.00, 
+        price: 65.00, 
         weight: "100g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748",
         category: "crystal"
@@ -115,7 +115,7 @@ const products = [
     { 
         id: 4, 
         name: "Natura Agmark Honey", 
-        price: 45.00, 
+        price: 40.00, 
         weight: "50g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792",
         category: "crystal"
@@ -123,7 +123,7 @@ const products = [
     { 
         id: 5, 
         name: "Natura Agmark Honey", 
-        price: 420.00, 
+        price: 370.00, 
         weight: "1Kg",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459",
         category: "premium"
@@ -131,7 +131,7 @@ const products = [
     { 
         id: 6, 
         name: "Natura Agmark Honey", 
-        price: 230.00, 
+        price: 200.00, 
         weight: "500g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598",
         category: "premium"
@@ -147,7 +147,7 @@ const likeIcon = document.getElementById('likeIcon');
 const likeCount = document.getElementById('likeCount');
 const cartIcon = document.getElementById('cartIcon');
 const cartCount = document.getElementById('cartCount');
-const Icon = document.getElementById('Icon');
+const whatsappIcon = document.getElementById('whatsappIcon');
 const userIcon = document.getElementById('userIcon');
 const userDropdown = document.getElementById('userDropdown');
 const profileLink = document.getElementById('profileLink');
@@ -809,6 +809,14 @@ function loadFooter() {
             })
             .then(html => {
                 footerPlaceholder.innerHTML = html;
+                const mobileFooterQuery = window.matchMedia('(max-width: 767px)');
+                const syncFooterSections = () => {
+                    footerPlaceholder.querySelectorAll('details.footer-column').forEach(section => {
+                        section.open = !mobileFooterQuery.matches;
+                    });
+                };
+                syncFooterSections();
+                mobileFooterQuery.addEventListener('change', syncFooterSections);
                 console.log('Footer loaded successfully');
             })
             .catch(err => {
@@ -1525,7 +1533,10 @@ function closeAllSidebars() {
     }
     
     navLinks.classList.remove('active');
+    navBar.classList.remove('menu-open');
     userDropdown.classList.remove('active');
+    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
     
     const icon = mobileMenuBtn.querySelector('i');
     icon.classList.remove('fa-times');
@@ -1536,12 +1547,24 @@ function closeAllSidebars() {
 }
 
 mobileMenuBtn.addEventListener('click', () => {
-    navLinks.classList.toggle('active');
-    overlay.classList.toggle('active');
-    document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : 'auto';
+    const menuIsOpen = navLinks.classList.contains('active');
+    if (menuIsOpen) {
+        navLinks.classList.remove('active');
+        navBar.classList.remove('menu-open');
+        overlay.classList.remove('active');
+    } else {
+        closeAllSidebars();
+        navLinks.classList.add('active');
+        navBar.classList.add('menu-open');
+        overlay.classList.add('active');
+    }
+    const isMenuOpen = navLinks.classList.contains('active');
+    document.body.style.overflow = isMenuOpen ? 'hidden' : 'auto';
+    mobileMenuBtn.setAttribute('aria-expanded', String(isMenuOpen));
+    mobileMenuBtn.setAttribute('aria-label', isMenuOpen ? 'Close navigation menu' : 'Open navigation menu');
     
     const icon = mobileMenuBtn.querySelector('i');
-    if (navLinks.classList.contains('active')) {
+    if (isMenuOpen) {
         icon.classList.remove('fa-bars');
         icon.classList.add('fa-times');
     } else {
@@ -1553,8 +1576,11 @@ mobileMenuBtn.addEventListener('click', () => {
 document.querySelectorAll('.nav-links a').forEach(link => {
     link.addEventListener('click', () => {
         navLinks.classList.remove('active');
+        navBar.classList.remove('menu-open');
         overlay.classList.remove('active');
         document.body.style.overflow = 'auto';
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
         
         const icon = mobileMenuBtn.querySelector('i');
         icon.classList.remove('fa-times');
@@ -1566,6 +1592,12 @@ overlay.addEventListener('click', () => {
     closeAllSidebars();
     overlay.classList.remove('active');
     document.body.style.overflow = 'auto';
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && overlay.classList.contains('active')) {
+        closeAllSidebars();
+    }
 });
 
 userIcon.addEventListener('click', (e) => {
@@ -1657,7 +1689,7 @@ function updateLikeUI() {
                 const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
                 const isOutOfStock = productCard ? productCard.getAttribute('data-out-of-stock') === 'true' : false;
                 
-                // Determine button text and classes based on stock status
+                const packaging = product.category === 'premium' ? 'PET Pack' : 'Glass Pack';
                 const addToCartText = isOutOfStock ? 'Out of Stock' : 'Add to Cart';
                 const addToCartClass = isOutOfStock ? 'add-to-cart-btn out-of-stock-btn' : 'add-to-cart-btn';
                 const addToCartDisabled = isOutOfStock ? 'disabled' : '';
@@ -1665,14 +1697,19 @@ function updateLikeUI() {
                 likeItem.innerHTML = `
                     <img src="${product.image}" alt="${product.name}">
                     <div class="like-item-details">
-                        <div class="like-item-title">${product.name}</div>
+                        <div class="like-item-heading">
+                            <div class="like-item-title">${product.name}</div>
+                            <span class="like-item-category" data-category="${product.category}">${packaging}</span>
+                        </div>
+                        <span class="like-item-weight">${product.weight}</span>
                         <div class="like-item-price">₹${product.price.toFixed(2)}</div>
                         <div class="like-item-actions">
-                            <button class="${addToCartClass}" data-id="${productId}" ${addToCartDisabled}>
-                                ${addToCartText} <!-- REMOVED: <i class="fas fa-cart-plus"></i> -->
+                            <button class="${addToCartClass}" type="button" data-id="${productId}" aria-label="${addToCartText}: ${product.name}, ${product.weight}" ${addToCartDisabled}>
+                                <i class="fas ${isOutOfStock ? 'fa-ban' : 'fa-cart-plus'}" aria-hidden="true"></i>
+                                <span>${addToCartText}</span>
                             </button>
-                            <button class="remove-like" data-id="${productId}">
-                                <i class="fas fa-times"></i>
+                            <button class="remove-like" type="button" data-id="${productId}" aria-label="Remove ${product.name}, ${product.weight}, from favorites">
+                                <i class="fas fa-heart" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
@@ -1774,19 +1811,24 @@ function updateCartUI() {
                 
                 const cartItem = document.createElement('div');
                 cartItem.className = 'cart-item';
+                const packaging = product.category === 'premium' ? 'PET Pack' : 'Glass Pack';
                 cartItem.innerHTML = `
                     <img src="${product.image}" alt="${product.name}">
                     <div class="cart-item-details">
-                        <div class="cart-item-title">${product.name}</div>
-    <div class="cart-item-price">₹${product.price.toFixed(2)}</div>
-    <div class="cart-item-controls">
+                        <div class="cart-item-heading">
+                            <div class="cart-item-title">${product.name}</div>
+                            <span class="cart-item-category" data-category="${product.category}">${packaging}</span>
+                        </div>
+                        <span class="cart-item-weight">${product.weight}</span>
+                        <div class="cart-item-price">₹${product.price.toFixed(2)}</div>
+                        <div class="cart-item-controls">
                             <div class="cart-item-quantity">
-                                <button class="quantity-btn minus" data-id="${product.id}">-</button>
-                                <input type="text" class="quantity-input" value="${item.quantity}" data-id="${product.id}">
-                                <button class="quantity-btn plus" data-id="${product.id}">+</button>
+                                <button class="quantity-btn minus" type="button" data-id="${product.id}" aria-label="Decrease ${product.name} ${product.weight} quantity">-</button>
+                                <input type="text" class="quantity-input" inputmode="numeric" aria-label="${product.name} ${product.weight} quantity" value="${item.quantity}" data-id="${product.id}">
+                                <button class="quantity-btn plus" type="button" data-id="${product.id}" aria-label="Increase ${product.name} ${product.weight} quantity">+</button>
                             </div>
-                            <button class="delete-item" data-id="${product.id}">
-                                <i class="fas fa-trash"></i>
+                            <button class="delete-item" type="button" data-id="${product.id}" aria-label="Remove ${product.name} ${product.weight} from cart">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
@@ -1925,10 +1967,10 @@ function removeFromCart(productId) {
 }
 
 whatsappIcon.addEventListener('click', () => {
-    const phoneNumber = "919495928394"; 
+    const phoneNumber = " ";
     const message = "Hello, I'm interested in your honey products!";
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+    window.open(url, '_blank');
 });
 
 closeLogin.addEventListener('click', () => {
@@ -2453,6 +2495,7 @@ function attachAddressEventListeners(addressId) {
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    navBar.classList.toggle('scrolled-up', scrollTop > 5);
     if (scrollTop > 5) {
         if (!notificationBar.classList.contains('hidden')) {
             notificationBar.classList.add('hidden');
@@ -2663,4 +2706,3 @@ function debugOrderData() {
 }
 
 window.debugOrderData = debugOrderData;
-

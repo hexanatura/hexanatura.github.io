@@ -8,6 +8,11 @@ const sortSelect = document.getElementById('sortSelect');
 const resultsCount = document.getElementById('resultsCount');
 const productsGrid = document.getElementById('productsGrid');
 const productCards = document.querySelectorAll('.product-card');
+const priceRange = document.getElementById('priceRange');
+const priceRangeValue = document.getElementById('priceRangeValue');
+const originalProductOrder = new Map(
+    Array.from(productCards, (product, index) => [product, index])
+);
 
 // Quick View Modal Elements
 const quickViewModal = document.getElementById('quickViewModal');
@@ -30,41 +35,65 @@ filterToggle.addEventListener('click', (e) => {
     filterSidebar.classList.add('active');
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    filterToggle.setAttribute('aria-expanded', 'true');
 });
 
 closeFilter.addEventListener('click', closeFilterSidebar);
+
+const filterSidebarObserver = new MutationObserver(() => {
+    filterToggle.setAttribute('aria-expanded', String(filterSidebar.classList.contains('active')));
+});
+filterSidebarObserver.observe(filterSidebar, { attributes: true, attributeFilter: ['class'] });
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && filterSidebar.classList.contains('active')) {
+        closeFilterSidebar();
+    }
+});
 
 function closeFilterSidebar() {
     closeAllSidebars();
     overlay.classList.remove('active');
     document.body.style.overflow = '';
+    filterToggle.setAttribute('aria-expanded', 'false');
 }
 
 // Sort functionality
 sortSelect.addEventListener('change', sortProducts);
 
+function getProductPrice(product) {
+    const displayedPrice = product.querySelector('.product-price')?.textContent ?? '';
+    const parsedPrice = Number(displayedPrice.replace(/[^\d.]/g, ''));
+
+    return Number.isFinite(parsedPrice) ? parsedPrice : Number(product.dataset.price);
+}
+
 function sortProducts() {
     const sortValue = sortSelect.value;
-    const products = Array.from(document.querySelectorAll('.product-card'));
-    
+    const products = Array.from(productCards);
+
     products.sort((a, b) => {
+        let comparison = 0;
         switch(sortValue) {
             case 'price-low':
-                return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                comparison = getProductPrice(a) - getProductPrice(b);
+                break;
             case 'price-high':
-                return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                comparison = getProductPrice(b) - getProductPrice(a);
+                break;
             case 'rating':
-                return parseFloat(b.dataset.rating) - parseFloat(a.dataset.rating);
+                comparison = Number(b.dataset.rating) - Number(a.dataset.rating);
+                break;
             case 'newest':
-                // For demonstration, we'll sort by an arbitrary "newness" value
-                return Math.random() - 0.5;
-            default: // featured
-                return Math.random() - 0.5;
+                comparison = Number(b.dataset.id) - Number(a.dataset.id);
+                break;
+            default:
+                comparison = originalProductOrder.get(a) - originalProductOrder.get(b);
         }
+
+        return comparison || originalProductOrder.get(a) - originalProductOrder.get(b);
     });
-    
-    // Reappend sorted products to grid
-    const productsGrid = document.getElementById('productsGrid');
+
     products.forEach(product => {
         productsGrid.appendChild(product);
     });
@@ -73,27 +102,34 @@ function sortProducts() {
 // Filter functionality
 applyFilters.addEventListener('click', filterProducts);
 clearFilters.addEventListener('click', clearAllFilters);
+priceRange.addEventListener('input', updatePriceRangeValue);
 
-function filterProducts() {
+function updatePriceRangeValue() {
+    priceRangeValue.textContent = `₹${Number(priceRange.value).toLocaleString('en-IN')}`;
+}
+
+function updateResultsCount(visibleCount) {
+    resultsCount.textContent = `Showing ${visibleCount} of ${productCards.length} products`;
+}
+
+function filterProducts(shouldCloseSidebar = true) {
     const categoryFilters = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(input => input.value);
-    const priceMax = document.getElementById('priceRange').value;
+    const priceMax = Number(priceRange.value);
     const weightFilters = Array.from(document.querySelectorAll('input[name="weight"]:checked')).map(input => input.value);
-    const ratingFilters = Array.from(document.querySelectorAll('input[name="rating"]:checked')).map(input => parseInt(input.value));
-    
-    const products = document.querySelectorAll('.product-card');
+    const ratingFilters = Array.from(document.querySelectorAll('input[name="rating"]:checked')).map(input => Number(input.value));
     let visibleCount = 0;
-    
-    products.forEach(product => {
+
+    productCards.forEach(product => {
         const productCategory = product.dataset.category;
-        const productPrice = parseFloat(product.dataset.price);
+        const productPrice = getProductPrice(product);
         const productWeight = product.dataset.weight;
-        const productRating = parseFloat(product.dataset.rating);
-        
+        const productRating = Number(product.dataset.rating);
+
         const categoryMatch = categoryFilters.length === 0 || categoryFilters.includes(productCategory);
         const priceMatch = productPrice <= priceMax;
         const weightMatch = weightFilters.length === 0 || weightFilters.includes(productWeight);
         const ratingMatch = ratingFilters.length === 0 || ratingFilters.some(r => productRating >= r);
-        
+
         if (categoryMatch && priceMatch && weightMatch && ratingMatch) {
             product.style.display = 'flex';
             visibleCount++;
@@ -101,26 +137,26 @@ function filterProducts() {
             product.style.display = 'none';
         }
     });
-    
-    document.getElementById('resultsCount').textContent = `Showing ${visibleCount} of ${products.length} products`;
-    closeFilterSidebar();
+
+    sortProducts();
+    updateResultsCount(visibleCount);
+    if (shouldCloseSidebar) closeFilterSidebar();
 }
 
 function clearAllFilters() {
-    document.querySelectorAll('input[type="checkbox"]').forEach(input => {
-        input.checked = false;
+    document.querySelectorAll('#filterSidebar input[type="checkbox"]').forEach(input => {
+        input.checked = input.name === 'category';
     });
-    
-    document.getElementById('priceRange').value = 1000;
-    
-    const products = document.querySelectorAll('.product-card');
-    products.forEach(product => {
-        product.style.display = 'flex';
-    });
-    
-    document.getElementById('resultsCount').textContent = `Showing ${products.length} of ${products.length} products`;
-    closeFilterSidebar();
+
+    priceRange.value = priceRange.max;
+    updatePriceRangeValue();
+    filterProducts();
 }
+
+const highestProductPrice = Math.max(...Array.from(productCards, getProductPrice));
+priceRange.max = String(Math.ceil(highestProductPrice / 50) * 50);
+priceRange.value = priceRange.max;
+updatePriceRangeValue();
 
 // Quick View Modal Functionality
 quickViewClose.addEventListener('click', closeQuickView);
