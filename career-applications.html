@@ -1,0 +1,302 @@
+<style>
+  .career-applications {
+    padding: 24px;
+    color: var(--primary, #17251b);
+  }
+
+  .career-applications__header,
+  .career-applications__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .career-applications__header {
+    margin-bottom: 20px;
+  }
+
+  .career-applications__title {
+    font-size: 1.45rem;
+    font-weight: 700;
+  }
+
+  .career-applications__subtitle {
+    margin-top: 4px;
+    color: var(--muted, #64748b);
+  }
+
+  .career-applications__controls {
+    margin-bottom: 18px;
+  }
+
+  .career-applications__search {
+    flex: 1 1 260px;
+    max-width: 420px;
+    padding: 10px 13px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fff;
+    font: inherit;
+  }
+
+  .career-applications__refresh,
+  .career-application__resume {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .career-applications__refresh:disabled,
+  .career-application__resume:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .career-applications__status {
+    padding: 18px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-md, 14px);
+    background: #fff;
+    color: var(--muted, #64748b);
+  }
+
+  .career-applications__status[data-error="true"] {
+    color: var(--danger, #b42318);
+  }
+
+  .career-applications__list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .career-application {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    padding: 18px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-md, 14px);
+    background: #fff;
+    box-shadow: var(--shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.06));
+  }
+
+  .career-application__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .career-application__name {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .career-application__date,
+  .career-application__location {
+    color: var(--muted, #64748b);
+    font-size: 0.88rem;
+  }
+
+  .career-application__contacts {
+    display: flex;
+    gap: 8px 18px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .career-application__contacts a {
+    color: var(--accent, #527c35);
+  }
+
+  .career-application__note {
+    margin-top: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .career-application__resume {
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    .career-applications {
+      padding: 16px;
+    }
+
+    .career-application {
+      grid-template-columns: 1fr;
+    }
+
+    .career-application__resume {
+      width: 100%;
+    }
+  }
+</style>
+
+<section class="career-applications" aria-labelledby="career-applications-title">
+  <header class="career-applications__header">
+    <div>
+      <h1 class="career-applications__title" id="career-applications-title">Career Applications</h1>
+      <p class="career-applications__subtitle">The latest 100 introductions and job applications submitted through the careers page.</p>
+    </div>
+  </header>
+
+  <div class="career-applications__controls">
+    <input
+      class="career-applications__search"
+      id="career-applications-search"
+      type="search"
+      aria-label="Search career applications"
+      placeholder="Search name, email, phone, or location"
+    >
+    <button class="career-applications__refresh" id="career-applications-refresh" type="button">
+      <i class="fas fa-sync-alt" aria-hidden="true"></i>
+      Refresh
+    </button>
+  </div>
+
+  <p class="career-applications__status" id="career-applications-status" role="status" aria-live="polite">Loading applications…</p>
+  <div class="career-applications__list" id="career-applications-list"></div>
+</section>
+
+<script>
+  (() => {
+    const status = document.getElementById("career-applications-status");
+    const list = document.getElementById("career-applications-list");
+    const search = document.getElementById("career-applications-search");
+    const refresh = document.getElementById("career-applications-refresh");
+    let applications = [];
+
+    const escapeHtml = (value) => {
+      const element = document.createElement("span");
+      element.textContent = value == null ? "" : String(value);
+      return element.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    };
+
+    const formatDate = (timestamp) => {
+      if (!timestamp) return "Date unavailable";
+      return new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Kolkata"
+      }).format(new Date(timestamp));
+    };
+
+    const renderApplications = () => {
+      const term = search.value.trim().toLowerCase();
+      const filtered = applications.filter((application) =>
+        [application.name, application.email, application.phone, application.location, application.jobTitle]
+          .some((value) => String(value || "").toLowerCase().includes(term))
+      );
+
+      list.innerHTML = filtered.map((application) => `
+        <article class="career-application">
+          <div>
+            <div class="career-application__top">
+              <h2 class="career-application__name">${escapeHtml(application.name)}</h2>
+              <time class="career-application__date">${escapeHtml(formatDate(application.submittedAt))}</time>
+            </div>
+            <p class="career-application__location">${escapeHtml(application.jobTitle || "General introduction")}</p>
+            <div class="career-application__contacts">
+              <a href="mailto:${escapeHtml(application.email)}">${escapeHtml(application.email)}</a>
+              <a href="tel:${escapeHtml(application.phone)}">${escapeHtml(application.phone)}</a>
+              <span class="career-application__location">${escapeHtml(application.location)}</span>
+            </div>
+            ${application.message
+              ? `<p class="career-application__note">${escapeHtml(application.message)}</p>`
+              : ""}
+          </div>
+          <button
+            class="career-application__resume"
+            type="button"
+            data-application-id="${escapeHtml(application.id)}"
+            aria-label="Download resume for ${escapeHtml(application.name)}"
+          >
+            <i class="fas fa-file-download" aria-hidden="true"></i>
+            Resume
+          </button>
+        </article>
+      `).join("");
+
+      status.hidden = filtered.length > 0;
+      status.dataset.error = "false";
+      if (!applications.length) {
+        status.textContent = "No career applications have been submitted yet.";
+      } else if (!filtered.length) {
+        status.textContent = "No applications match your search.";
+      }
+    };
+
+    const loadApplications = async () => {
+      refresh.disabled = true;
+      status.hidden = false;
+      status.dataset.error = "false";
+      status.textContent = "Loading applications…";
+      list.innerHTML = "";
+
+      try {
+        const getApplications = window.careerFunctions.httpsCallable("getCareerApplications");
+        const result = await getApplications();
+        applications = result.data.applications || [];
+        renderApplications();
+      } catch (error) {
+        console.error("Career applications could not be loaded:", error);
+        status.dataset.error = "true";
+        status.textContent = "Applications could not be loaded. Check your admin access and try again.";
+      } finally {
+        refresh.disabled = false;
+      }
+    };
+
+    list.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-application-id]");
+      if (!button) return;
+
+      button.disabled = true;
+      try {
+        const getResume = window.careerFunctions.httpsCallable("getCareerApplicationResume");
+        const result = await getResume({ applicationId: button.dataset.applicationId });
+        const binary = atob(result.data.data);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+
+        const objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.data.contentType }));
+        const downloadLink = document.createElement("a");
+        downloadLink.href = objectUrl;
+        downloadLink.download = result.data.fileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      } catch (error) {
+        console.error("Career application resume could not be downloaded:", error);
+        status.hidden = false;
+        status.dataset.error = "true";
+        status.textContent = "This resume could not be opened. Please try again.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    search.addEventListener("input", renderApplications);
+    refresh.addEventListener("click", loadApplications);
+    loadApplications();
+  })();
+</script>

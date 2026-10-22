@@ -1,9 +1,10 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onCall } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 setGlobalOptions({ region: "asia-south1" });
 admin.initializeApp();
@@ -19,6 +20,95 @@ const ADMIN_EMAIL = "hexanatura.info@gmail.com";
 const DASHBOARD_URL = "https://www.hexahoney.in/dashboard.html";
 const SITE_URL = "https://www.hexahoney.in/";
 const TRACK_URL = "https://www.hexahoney.in/trackorder.html";
+
+async function requireCareerAdmin(request) {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Sign in as an administrator to continue.");
+  }
+
+  const adminSnapshot = await admin.firestore()
+    .collection("admins")
+    .doc(request.auth.uid)
+    .get();
+  if (!adminSnapshot.exists || adminSnapshot.data().admin !== true) {
+    throw new HttpsError("permission-denied", "Administrator access is required.");
+  }
+}
+
+function readCareerOpening(data) {
+  const readText = (value, field, maxLength, required = true) => {
+    if (typeof value !== "string") {
+      if (!required && (value === undefined || value === null)) return "";
+      throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+    }
+    const text = value.replace(/\r\n?/g, "\n")
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+      .trim();
+    if ((required && !text) || text.length > maxLength) {
+      throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+    }
+    return text;
+  };
+
+  const readList = (value, field) => {
+    if (!Array.isArray(value) || value.length > 12) {
+      throw new HttpsError("invalid-argument", `Please provide valid ${field}.`);
+    }
+    return value.map((item) => readText(item, field, 300)).filter(Boolean);
+  };
+
+  const status = readText(data.status, "status", 10);
+  if (!["draft", "open", "closed"].includes(status)) {
+    throw new HttpsError("invalid-argument", "Choose a valid job status.");
+  }
+  const deadline = readText(data.deadline, "application deadline", 10, false);
+  if (deadline) {
+    const parsedDeadline = Date.parse(`${deadline}T00:00:00.000Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || !Number.isFinite(parsedDeadline) ||
+        new Date(parsedDeadline).toISOString().slice(0, 10) !== deadline) {
+      throw new HttpsError("invalid-argument", "Choose a valid application deadline.");
+    }
+  }
+
+  const employmentType = readText(data.employmentType, "employment type", 40);
+  if (!["Full-time", "Part-time", "Contract", "Internship"].includes(employmentType)) {
+    throw new HttpsError("invalid-argument", "Choose a valid employment type.");
+  }
+  const workplace = readText(data.workplace, "work arrangement", 30);
+  if (!["On-site", "Hybrid", "Remote"].includes(workplace)) {
+    throw new HttpsError("invalid-argument", "Choose a valid work arrangement.");
+  }
+  const responsibilities = readList(data.responsibilities, "responsibilities");
+  if (!responsibilities.length) {
+    throw new HttpsError("invalid-argument", "Add at least one job responsibility.");
+  }
+
+  return {
+    title: readText(data.title, "job title", 120),
+    department: readText(data.department, "department", 100),
+    location: readText(data.location, "location", 120),
+    employmentType,
+    workplace,
+    salaryRange: readText(data.salaryRange, "salary range", 120, false),
+    summary: readText(data.summary, "job summary", 1200),
+    responsibilities,
+    requirements: readList(data.requirements, "requirements"),
+    benefits: readList(data.benefits, "benefits"),
+    deadline,
+    status
+  };
+}
+
+function careerDateInThalassery() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
 
 /* ===== EMAIL VALIDATION ===== */
 function isValidEmail(email) {
@@ -1390,5 +1480,377 @@ exports.cleanupTempOrders = require("firebase-functions/v2").scheduler.onSchedul
     
   } catch (error) {
     console.error("Error cleaning up temp orders:", error);
+  }
+});
+
+exports.submitCareerApplication = onCall(
+  {
+    cors: [
+      "https://www.hexahoney.in",
+      "https://hexahoney.in",
+      "https://hexahoney-96aed.web.app",
+      "https://hexahoney-96aed.firebaseapp.com"
+    ],
+    maxInstances: 5,
+    memory: "512MiB",
+    timeoutSeconds: 60
+  },
+  async (request) => {
+    const data = request.data || {};
+
+    const readText = (value, field, maxLength, required = true) => {
+      if (typeof value !== "string") {
+        if (!required && (value === undefined || value === null)) return "";
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+
+      const text = value.replace(/\r\n?/g, "\n")
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+        .trim();
+      if ((required && !text) || text.length > maxLength) {
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      return text;
+    };
+
+    if (readText(data.website, "website", 200, false)) {
+      throw new HttpsError("invalid-argument", "Unable to process this application.");
+    }
+
+    const name = readText(data.name, "name", 120);
+    const email = readText(data.email, "email", 254);
+    const phone = readText(data.phone, "phone number", 25);
+    const location = readText(data.location, "location", 120);
+    const message = readText(data.message, "message", 3000, false);
+
+    if (!isValidEmail(email)) {
+      throw new HttpsError("invalid-argument", "Please enter a valid email address.");
+    }
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (!/^[+()\d\s.-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      throw new HttpsError("invalid-argument", "Please enter a valid phone number.");
+    }
+
+    const resume = data.resume;
+    if (!resume || typeof resume !== "object") {
+      throw new HttpsError("invalid-argument", "Please attach a PDF, DOC, or DOCX resume.");
+    }
+
+    const filename = typeof resume.name === "string"
+      ? resume.name.replace(/\\/g, "/").split("/").pop().replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 120)
+      : "";
+    const extension = filename.split(".").pop().toLowerCase();
+    const expectedTypes = {
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    };
+    if (!filename || !expectedTypes[extension] ||
+        (resume.type && resume.type !== expectedTypes[extension]) ||
+        typeof resume.data !== "string" ||
+        resume.data.length > 7_000_000 ||
+        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(resume.data)) {
+      throw new HttpsError("invalid-argument", "Choose a PDF, DOC, or DOCX resume smaller than 5 MB.");
+    }
+
+    const resumeBuffer = Buffer.from(resume.data, "base64");
+    if (!resumeBuffer.length || resumeBuffer.length > 5 * 1024 * 1024 ||
+        resumeBuffer.toString("base64") !== resume.data) {
+      throw new HttpsError("invalid-argument", "Choose a resume smaller than 5 MB.");
+    }
+
+    const isPdf = extension === "pdf" && resumeBuffer.subarray(0, 5).toString() === "%PDF-";
+    const isDoc = extension === "doc" &&
+      resumeBuffer.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]));
+    const isDocx = extension === "docx" &&
+      resumeBuffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+    if (!isPdf && !isDoc && !isDocx) {
+      throw new HttpsError("invalid-argument", "The selected file does not match its document type.");
+    }
+
+    const clientIp = request.rawRequest.ip;
+    if (!clientIp) {
+      throw new HttpsError("failed-precondition", "Unable to verify the application request.");
+    }
+    const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
+    const rateLimitRef = admin.firestore().collection("careerApplicationLimits").doc(ipHash);
+    const now = Date.now();
+    const rateWindowMs = 15 * 60 * 1000;
+    await admin.firestore().runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(rateLimitRef);
+      const limit = snapshot.data();
+      const windowStartedAt = limit?.windowStartedAt || 0;
+      const currentCount = now - windowStartedAt < rateWindowMs ? (limit?.count || 0) : 0;
+      if (currentCount >= 3) {
+        throw new HttpsError("resource-exhausted", "Please wait before submitting another application.");
+      }
+      transaction.set(rateLimitRef, {
+        windowStartedAt: currentCount ? windowStartedAt : now,
+        count: currentCount + 1,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    const jobId = data.jobId === undefined || data.jobId === null ? "" : data.jobId;
+    if (typeof jobId !== "string" || (jobId && !/^[A-Za-z0-9_-]{1,128}$/.test(jobId))) {
+      throw new HttpsError("invalid-argument", "Choose a valid job opening.");
+    }
+    let jobRef = null;
+    let jobTitle = "General introduction";
+    if (jobId) {
+      jobRef = admin.firestore().collection("careerOpenings").doc(jobId);
+      const jobSnapshot = await jobRef.get();
+      if (!jobSnapshot.exists) {
+        throw new HttpsError("not-found", "This job opening is no longer available.");
+      }
+      const job = jobSnapshot.data();
+      if (job.status !== "open" || (job.deadline && job.deadline < careerDateInThalassery())) {
+        throw new HttpsError("failed-precondition", "Applications for this job are closed.");
+      }
+      jobTitle = job.title;
+    }
+
+    const applicationRef = admin.firestore().collection("careerApplications").doc();
+    const storagePath = `career-applications/${applicationRef.id}/${filename}`;
+    const resumeFile = admin.storage().bucket().file(storagePath);
+    try {
+      await resumeFile.save(resumeBuffer, {
+        resumable: false,
+        metadata: {
+          contentType: expectedTypes[extension],
+          contentDisposition: `attachment; filename="${filename}"`,
+          cacheControl: "private, max-age=0, no-transform"
+        }
+      });
+      await admin.firestore().runTransaction(async (transaction) => {
+        if (jobRef) {
+          const jobSnapshot = await transaction.get(jobRef);
+          const job = jobSnapshot.data();
+          if (!jobSnapshot.exists || job.status !== "open" ||
+              (job.deadline && job.deadline < careerDateInThalassery())) {
+            throw new HttpsError("failed-precondition", "Applications for this job are closed.");
+          }
+          jobTitle = job.title;
+        }
+
+        transaction.set(applicationRef, {
+          name,
+          email,
+          phone,
+          location,
+          message,
+          jobId: jobId || null,
+          jobTitle,
+          resumeName: filename,
+          resumeContentType: expectedTypes[extension],
+          resumeSize: resumeBuffer.length,
+          resumePath: storagePath,
+          submittedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        if (jobRef) {
+          transaction.update(jobRef, {
+            applicationCount: admin.firestore.FieldValue.increment(1)
+          });
+        }
+      });
+    } catch (error) {
+      try {
+        await applicationRef.delete();
+      } catch (cleanupError) {
+        console.error("Career application record cleanup failed:", cleanupError);
+      }
+      try {
+        await resumeFile.delete();
+      } catch (cleanupError) {
+        if (cleanupError.code !== 404) {
+          console.error("Career application resume cleanup failed:", cleanupError);
+        }
+      }
+      console.error("Career application storage failed:", error);
+      throw new HttpsError("internal", "Unable to save your application right now.");
+    }
+
+    const text = [
+      "A career introduction was submitted through the Hexa Apiarium careers page.",
+      "",
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Phone: ${phone}`,
+      `Location: ${location}`,
+      `Job: ${jobTitle}`,
+      "",
+      "Note:",
+      message || "No note provided."
+    ].join("\n");
+
+    try {
+      const mailer = transporter();
+      await mailer.sendMail({
+        from: `"Hexa Apiarium Careers" <${GMAIL_EMAIL.value()}>`,
+        to: ADMIN_EMAIL,
+        replyTo: email,
+        subject: jobId ? `Job application: ${jobTitle}` : "Career introduction - Hexa Apiarium",
+        text,
+        attachments: [{
+          filename,
+          content: resumeBuffer,
+          contentType: expectedTypes[extension]
+        }]
+      });
+      return { success: true, notificationSent: true };
+    } catch (error) {
+      console.error("Career application email failed:", error);
+      return { success: true, notificationSent: false };
+    }
+  }
+);
+
+exports.getCareerApplications = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  let query = admin.firestore().collection("careerApplications");
+  const jobId = request.data?.jobId;
+  if (jobId !== undefined && jobId !== null) {
+    if (typeof jobId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(jobId)) {
+      throw new HttpsError("invalid-argument", "Choose a valid job opening.");
+    }
+    query = query.where("jobId", "==", jobId);
+  }
+  const snapshot = await query.orderBy("submittedAt", "desc").limit(100).get();
+
+  return {
+    applications: snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        location: data.location,
+        message: data.message || "",
+        jobId: data.jobId || null,
+        jobTitle: data.jobTitle || "General introduction",
+        resumeName: data.resumeName,
+        resumeSize: data.resumeSize,
+        submittedAt: data.submittedAt?.toMillis() || null
+      };
+    })
+  };
+});
+
+exports.getCareerOpenings = onCall(async () => {
+  const today = careerDateInThalassery();
+  const snapshot = await admin.firestore()
+    .collection("careerOpenings")
+    .where("status", "==", "open")
+    .orderBy("createdAt", "desc")
+    .limit(100)
+    .get();
+
+  return {
+    openings: snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((opening) => !opening.deadline || opening.deadline >= today)
+      .map((opening) => ({
+        id: opening.id,
+        title: opening.title,
+        department: opening.department,
+        location: opening.location,
+        employmentType: opening.employmentType,
+        workplace: opening.workplace,
+        salaryRange: opening.salaryRange || "",
+        summary: opening.summary,
+        responsibilities: opening.responsibilities || [],
+        requirements: opening.requirements || [],
+        benefits: opening.benefits || [],
+        deadline: opening.deadline || ""
+      }))
+  };
+});
+
+exports.getCareerOpeningsAdmin = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  const snapshot = await admin.firestore()
+    .collection("careerOpenings")
+    .orderBy("updatedAt", "desc")
+    .limit(200)
+    .get();
+
+  return {
+    openings: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  };
+});
+
+exports.manageCareerOpening = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  const data = request.data || {};
+  if (data.action === "delete") {
+    if (typeof data.id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(data.id)) {
+      throw new HttpsError("invalid-argument", "Choose a valid job opening.");
+    }
+    await admin.firestore().collection("careerOpenings").doc(data.id).delete();
+    return { success: true };
+  }
+  if (data.action !== "save") {
+    throw new HttpsError("invalid-argument", "Choose a valid job action.");
+  }
+
+  const opening = readCareerOpening(data.opening || {});
+  const collection = admin.firestore().collection("careerOpenings");
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  if (data.id !== undefined && data.id !== null) {
+    if (typeof data.id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(data.id)) {
+      throw new HttpsError("invalid-argument", "Choose a valid job opening.");
+    }
+    const reference = collection.doc(data.id);
+    const existing = await reference.get();
+    if (!existing.exists) throw new HttpsError("not-found", "This job opening no longer exists.");
+    await reference.set({ ...opening, updatedAt: now }, { merge: true });
+    return { success: true, id: data.id };
+  }
+
+  const reference = collection.doc();
+  await reference.set({
+    ...opening,
+    applicationCount: 0,
+    createdAt: now,
+    updatedAt: now
+  });
+  return { success: true, id: reference.id };
+});
+
+exports.getCareerApplicationResume = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  const applicationId = request.data?.applicationId;
+  if (typeof applicationId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(applicationId)) {
+    throw new HttpsError("invalid-argument", "Choose a valid application.");
+  }
+
+  const applicationSnapshot = await admin.firestore()
+    .collection("careerApplications")
+    .doc(applicationId)
+    .get();
+  if (!applicationSnapshot.exists) {
+    throw new HttpsError("not-found", "This application could not be found.");
+  }
+
+  const application = applicationSnapshot.data();
+  if (typeof application.resumePath !== "string" ||
+      !application.resumePath.startsWith(`career-applications/${applicationId}/`)) {
+    throw new HttpsError("failed-precondition", "This application has no available resume.");
+  }
+
+  try {
+    const [resumeBuffer] = await admin.storage()
+      .bucket()
+      .file(application.resumePath)
+      .download();
+    return {
+      fileName: application.resumeName,
+      contentType: application.resumeContentType,
+      data: resumeBuffer.toString("base64")
+    };
+  } catch (error) {
+    console.error("Career application resume retrieval failed:", error);
+    throw new HttpsError("internal", "This resume could not be opened right now.");
   }
 });

@@ -1,0 +1,599 @@
+<style>
+  .career-jobs {
+    padding: 24px;
+    color: var(--primary, #17251b);
+  }
+
+  .career-jobs__header,
+  .career-job__header,
+  .career-job__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .career-jobs__header {
+    margin-bottom: 20px;
+  }
+
+  .career-jobs__title {
+    font-size: 1.45rem;
+    font-weight: 700;
+  }
+
+  .career-jobs__subtitle,
+  .career-job__meta {
+    margin-top: 4px;
+    color: var(--muted, #64748b);
+  }
+
+  .career-jobs__layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .career-jobs__form,
+  .career-job {
+    padding: 18px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-md, 14px);
+    background: #fff;
+    box-shadow: var(--shadow-sm, 0 4px 14px rgba(15, 23, 42, 0.06));
+  }
+
+  .career-jobs__form {
+    display: grid;
+    gap: 13px;
+    position: sticky;
+    top: 16px;
+  }
+
+  .career-jobs__form h2,
+  .career-jobs__list-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .career-jobs__field {
+    display: grid;
+    gap: 5px;
+    color: var(--primary, #17251b);
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .career-jobs__field input,
+  .career-jobs__field select,
+  .career-jobs__field textarea {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-weight: 400;
+  }
+
+  .career-jobs__field textarea {
+    min-height: 86px;
+    resize: vertical;
+  }
+
+  .career-jobs__hint {
+    color: var(--muted, #64748b);
+    font-size: 0.78rem;
+    font-weight: 400;
+  }
+
+  .career-jobs__form-actions,
+  .career-job__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .career-jobs__button,
+  .career-job__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 12px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .career-jobs__button--primary {
+    border-color: var(--accent, #527c35);
+    background: var(--accent, #527c35);
+    color: #fff;
+  }
+
+  .career-jobs__button:disabled,
+  .career-job__button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .career-jobs__status,
+  .career-jobs__notice {
+    padding: 12px 14px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fff;
+    color: var(--muted, #64748b);
+    font-size: 0.9rem;
+  }
+
+  .career-jobs__status[data-error="true"],
+  .career-jobs__notice[data-error="true"] {
+    color: var(--danger, #b42318);
+  }
+
+  .career-jobs__list {
+    display: grid;
+    gap: 13px;
+    margin-top: 12px;
+  }
+
+  .career-job__title {
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+
+  .career-job__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #eef2f0;
+    color: #42534a;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+
+  .career-job__badge[data-status="open"] {
+    background: #e9f6eb;
+    color: #23763b;
+  }
+
+  .career-job__summary {
+    margin-top: 12px;
+    white-space: pre-wrap;
+  }
+
+  .career-job__actions {
+    margin-top: 14px;
+  }
+
+  .career-job__applications {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .career-job__application {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border, #dce3dc);
+    border-radius: var(--radius-sm, 10px);
+    background: #fbfcfb;
+  }
+
+  .career-job__application p {
+    margin-top: 4px;
+    color: var(--muted, #64748b);
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+  }
+
+  .career-job__application-message {
+    white-space: pre-wrap;
+  }
+
+  @media (max-width: 950px) {
+    .career-jobs__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .career-jobs__form {
+      position: static;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .career-jobs {
+      padding: 16px;
+    }
+
+    .career-job__application {
+      grid-template-columns: 1fr;
+    }
+
+    .career-job__application .career-job__button {
+      width: 100%;
+    }
+  }
+</style>
+
+<section class="career-jobs" aria-labelledby="career-jobs-title">
+  <header class="career-jobs__header">
+    <div>
+      <h1 class="career-jobs__title" id="career-jobs-title">Job Openings</h1>
+      <p class="career-jobs__subtitle">Create and manage roles shown on the public careers page, and review applicants for each role.</p>
+    </div>
+    <button class="career-jobs__button" id="career-jobs-new" type="button">
+      <i class="fas fa-plus" aria-hidden="true"></i>
+      New job
+    </button>
+  </header>
+
+  <p class="career-jobs__notice" id="career-jobs-notice" role="status" aria-live="polite" hidden></p>
+  <div class="career-jobs__layout">
+    <form class="career-jobs__form" id="career-job-form">
+      <h2 id="career-job-form-title">Create a job</h2>
+      <input type="hidden" name="id">
+
+      <label class="career-jobs__field">
+        Job title *
+        <input name="title" maxlength="120" required placeholder="Quality Assurance Executive">
+      </label>
+
+      <label class="career-jobs__field">
+        Department *
+        <input name="department" maxlength="100" required placeholder="Quality & Operations">
+      </label>
+
+      <label class="career-jobs__field">
+        Location *
+        <input name="location" maxlength="120" required placeholder="Thalassery, Kerala">
+      </label>
+
+      <label class="career-jobs__field">
+        Employment type *
+        <select name="employmentType" required>
+          <option value="">Select type</option>
+          <option>Full-time</option>
+          <option>Part-time</option>
+          <option>Contract</option>
+          <option>Internship</option>
+        </select>
+      </label>
+
+      <label class="career-jobs__field">
+        Work arrangement *
+        <select name="workplace" required>
+          <option value="">Select arrangement</option>
+          <option>On-site</option>
+          <option>Hybrid</option>
+          <option>Remote</option>
+        </select>
+      </label>
+
+      <label class="career-jobs__field">
+        Salary or pay range
+        <input name="salaryRange" maxlength="120" placeholder="Optional">
+      </label>
+
+      <label class="career-jobs__field">
+        Job summary *
+        <textarea name="summary" maxlength="1200" required placeholder="A clear overview of the role and its impact."></textarea>
+      </label>
+
+      <label class="career-jobs__field">
+        Responsibilities *
+        <textarea name="responsibilities" required placeholder="One responsibility per line"></textarea>
+        <span class="career-jobs__hint">Add up to 12 items, one per line.</span>
+      </label>
+
+      <label class="career-jobs__field">
+        Requirements
+        <textarea name="requirements" placeholder="One requirement per line"></textarea>
+        <span class="career-jobs__hint">Optional; add one item per line.</span>
+      </label>
+
+      <label class="career-jobs__field">
+        Benefits
+        <textarea name="benefits" placeholder="One benefit per line"></textarea>
+        <span class="career-jobs__hint">Optional; add one item per line.</span>
+      </label>
+
+      <label class="career-jobs__field">
+        Application deadline
+        <input name="deadline" type="date">
+      </label>
+
+      <label class="career-jobs__field">
+        Status *
+        <select name="status" required>
+          <option value="draft">Draft — hidden from applicants</option>
+          <option value="open">Open — visible on careers page</option>
+          <option value="closed">Closed — hidden from applicants</option>
+        </select>
+      </label>
+
+      <p class="career-jobs__status" id="career-job-form-status" role="status" aria-live="polite" hidden></p>
+      <div class="career-jobs__form-actions">
+        <button class="career-jobs__button career-jobs__button--primary" id="career-job-save" type="submit">
+          <i class="fas fa-save" aria-hidden="true"></i>
+          Save job
+        </button>
+        <button class="career-jobs__button" id="career-job-cancel" type="button">Clear</button>
+      </div>
+    </form>
+
+    <div>
+      <h2 class="career-jobs__list-title">All jobs</h2>
+      <p class="career-jobs__status" id="career-jobs-status" role="status" aria-live="polite">Loading jobs…</p>
+      <div class="career-jobs__list" id="career-jobs-list"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const form = document.getElementById("career-job-form");
+    const formStatus = document.getElementById("career-job-form-status");
+    const pageStatus = document.getElementById("career-jobs-status");
+    const notice = document.getElementById("career-jobs-notice");
+    const list = document.getElementById("career-jobs-list");
+    const saveButton = document.getElementById("career-job-save");
+    const formTitle = document.getElementById("career-job-form-title");
+    let openings = [];
+
+    const escapeHtml = (value) => {
+      const element = document.createElement("span");
+      element.textContent = value == null ? "" : String(value);
+      return element.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    };
+
+    const showNotice = (message, isError = false) => {
+      notice.textContent = message;
+      notice.dataset.error = String(isError);
+      notice.hidden = false;
+    };
+
+    const listLines = (value) => value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+
+    const resetForm = () => {
+      form.reset();
+      form.elements.id.value = "";
+      form.elements.status.value = "draft";
+      formTitle.textContent = "Create a job";
+      formStatus.hidden = true;
+      formStatus.textContent = "";
+    };
+
+    const formatDate = (timestamp) => {
+      if (!timestamp) return "Date unavailable";
+      const date = typeof timestamp.toDate === "function" ? timestamp.toDate() : new Date(timestamp);
+      return new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeZone: "Asia/Kolkata"
+      }).format(date);
+    };
+
+    const renderApplications = (container, applications) => {
+      if (!applications.length) {
+        container.innerHTML = `<p class="career-jobs__status">No applications have been submitted for this job yet.</p>`;
+        return;
+      }
+      container.innerHTML = applications.map((application) => `
+        <article class="career-job__application">
+          <div>
+            <strong>${escapeHtml(application.name)}</strong>
+            <p>${escapeHtml(application.email)} · ${escapeHtml(application.phone)} · ${escapeHtml(application.location)}</p>
+            <p>Applied ${escapeHtml(formatDate(application.submittedAt))}</p>
+            ${application.message ? `<p class="career-job__application-message">${escapeHtml(application.message)}</p>` : ""}
+          </div>
+          <button
+            class="career-job__button"
+            type="button"
+            data-resume-id="${escapeHtml(application.id)}"
+            aria-label="Download resume for ${escapeHtml(application.name)}"
+          >
+            <i class="fas fa-file-download" aria-hidden="true"></i>
+            Resume
+          </button>
+        </article>
+      `).join("");
+    };
+
+    const loadApplications = async (jobId, container, button) => {
+      if (!container.hidden) {
+        container.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        return;
+      }
+      container.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      container.innerHTML = `<p class="career-jobs__status">Loading applications…</p>`;
+      button.disabled = true;
+      try {
+        const getApplications = window.careerFunctions.httpsCallable("getCareerApplications");
+        const result = await getApplications({ jobId });
+        renderApplications(container, result.data.applications || []);
+      } catch (error) {
+        console.error("Job applications could not be loaded:", error);
+        container.innerHTML = `<p class="career-jobs__status" data-error="true">Applications could not be loaded. Check your admin access and try again.</p>`;
+      } finally {
+        button.disabled = false;
+      }
+    };
+
+    const loadOpenings = async () => {
+      pageStatus.hidden = false;
+      pageStatus.dataset.error = "false";
+      pageStatus.textContent = "Loading jobs…";
+      list.innerHTML = "";
+      try {
+        const getOpenings = window.careerFunctions.httpsCallable("getCareerOpeningsAdmin");
+        const result = await getOpenings();
+        openings = result.data.openings || [];
+        if (!openings.length) {
+          pageStatus.textContent = "No jobs yet. Create a job to get started.";
+          return;
+        }
+        pageStatus.hidden = true;
+        list.innerHTML = openings.map((opening) => `
+          <article class="career-job" data-job-id="${escapeHtml(opening.id)}">
+            <div class="career-job__header">
+              <div>
+                <h3 class="career-job__title">${escapeHtml(opening.title)}</h3>
+                <p class="career-job__meta">${escapeHtml(opening.department)} · ${escapeHtml(opening.location)} · ${escapeHtml(opening.employmentType)} · ${escapeHtml(opening.workplace)}</p>
+              </div>
+              <span class="career-job__badge" data-status="${escapeHtml(opening.status)}">${escapeHtml(opening.status)}</span>
+            </div>
+            <p class="career-job__summary">${escapeHtml(opening.summary)}</p>
+            <p class="career-job__meta">${Number(opening.applicationCount) || 0} application(s)${opening.deadline ? ` · Deadline ${escapeHtml(opening.deadline)}` : ""}</p>
+            <div class="career-job__actions">
+              <button class="career-job__button" type="button" data-action="applications" aria-expanded="false">
+                <i class="fas fa-users" aria-hidden="true"></i>
+                View applications
+              </button>
+              <button class="career-job__button" type="button" data-action="edit">
+                <i class="fas fa-pen" aria-hidden="true"></i>
+                Edit
+              </button>
+              <button class="career-job__button" type="button" data-action="delete">
+                <i class="fas fa-trash" aria-hidden="true"></i>
+                Delete job
+              </button>
+            </div>
+            <div class="career-job__applications" hidden></div>
+          </article>
+        `).join("");
+      } catch (error) {
+        console.error("Job openings could not be loaded:", error);
+        pageStatus.dataset.error = "true";
+        pageStatus.textContent = "Job openings could not be loaded. Check your admin access and try again.";
+      }
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const submitter = saveButton;
+      submitter.disabled = true;
+      formStatus.hidden = true;
+      const opening = {
+        title: form.elements.title.value,
+        department: form.elements.department.value,
+        location: form.elements.location.value,
+        employmentType: form.elements.employmentType.value,
+        workplace: form.elements.workplace.value,
+        salaryRange: form.elements.salaryRange.value,
+        summary: form.elements.summary.value,
+        responsibilities: listLines(form.elements.responsibilities.value),
+        requirements: listLines(form.elements.requirements.value),
+        benefits: listLines(form.elements.benefits.value),
+        deadline: form.elements.deadline.value,
+        status: form.elements.status.value
+      };
+      try {
+        const manageOpening = window.careerFunctions.httpsCallable("manageCareerOpening");
+        await manageOpening({
+          action: "save",
+          id: form.elements.id.value || null,
+          opening
+        });
+        resetForm();
+        showNotice("Job saved.");
+        await loadOpenings();
+      } catch (error) {
+        console.error("Job could not be saved:", error);
+        formStatus.dataset.error = "true";
+        formStatus.textContent = error.message || "The job could not be saved. Please try again.";
+        formStatus.hidden = false;
+      } finally {
+        submitter.disabled = false;
+      }
+    });
+
+    list.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-action], button[data-resume-id]");
+      if (!button) return;
+      const card = button.closest("[data-job-id]");
+      const opening = openings.find((item) => item.id === card?.dataset.jobId);
+
+      if (button.dataset.action === "applications") {
+        await loadApplications(opening.id, card.querySelector(".career-job__applications"), button);
+      } else if (button.dataset.action === "edit") {
+        form.elements.id.value = opening.id;
+        form.elements.title.value = opening.title || "";
+        form.elements.department.value = opening.department || "";
+        form.elements.location.value = opening.location || "";
+        form.elements.employmentType.value = opening.employmentType || "";
+        form.elements.workplace.value = opening.workplace || "";
+        form.elements.salaryRange.value = opening.salaryRange || "";
+        form.elements.summary.value = opening.summary || "";
+        form.elements.responsibilities.value = (opening.responsibilities || []).join("\n");
+        form.elements.requirements.value = (opening.requirements || []).join("\n");
+        form.elements.benefits.value = (opening.benefits || []).join("\n");
+        form.elements.deadline.value = opening.deadline || "";
+        form.elements.status.value = opening.status || "draft";
+        formTitle.textContent = "Edit job";
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (button.dataset.action === "delete") {
+        if (!window.confirm(`Delete "${opening.title}"? Existing applications and resumes will be kept in the dashboard.`)) return;
+        button.disabled = true;
+        try {
+          const manageOpening = window.careerFunctions.httpsCallable("manageCareerOpening");
+          await manageOpening({ action: "delete", id: opening.id });
+          if (form.elements.id.value === opening.id) resetForm();
+          showNotice("Job deleted. Existing applications were kept.");
+          await loadOpenings();
+        } catch (error) {
+          console.error("Job could not be deleted:", error);
+          showNotice("Job could not be deleted. Please try again.", true);
+        } finally {
+          button.disabled = false;
+        }
+      } else if (button.dataset.resumeId) {
+        button.disabled = true;
+        try {
+          const getResume = window.careerFunctions.httpsCallable("getCareerApplicationResume");
+          const result = await getResume({ applicationId: button.dataset.resumeId });
+          const binary = atob(result.data.data);
+          const bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+          const objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.data.contentType }));
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = result.data.fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        } catch (error) {
+          console.error("Applicant resume could not be downloaded:", error);
+          showNotice("This resume could not be opened. Please try again.", true);
+        } finally {
+          button.disabled = false;
+        }
+      }
+    });
+
+    document.getElementById("career-job-cancel").addEventListener("click", resetForm);
+    document.getElementById("career-jobs-new").addEventListener("click", () => {
+      resetForm();
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      form.elements.title.focus();
+    });
+    loadOpenings();
+  })();
+</script>
