@@ -1470,11 +1470,42 @@ function displayAddress(addressId, address) {
                     <label for="edit-state-${addressId}">State</label>
                     <select id="edit-state-${addressId}" required>
                         <option value="">Select State</option>
-                        <option value="Kerala" ${address.state === 'Kerala' ? 'selected' : ''}>Kerala</option>
-                        <option value="Tamil Nadu" ${address.state === 'Tamil Nadu' ? 'selected' : ''}>Tamil Nadu</option>
-                        <option value="Karnataka" ${address.state === 'Karnataka' ? 'selected' : ''}>Karnataka</option>
-                        <option value="Maharashtra" ${address.state === 'Maharashtra' ? 'selected' : ''}>Maharashtra</option>
+                        <option value="Andaman and Nicobar Islands" ${address.state === 'Andaman and Nicobar Islands' ? 'selected' : ''}>Andaman and Nicobar Islands</option>
+                        <option value="Andhra Pradesh" ${address.state === 'Andhra Pradesh' ? 'selected' : ''}>Andhra Pradesh</option>
+                        <option value="Arunachal Pradesh" ${address.state === 'Arunachal Pradesh' ? 'selected' : ''}>Arunachal Pradesh</option>
+                        <option value="Assam" ${address.state === 'Assam' ? 'selected' : ''}>Assam</option>
+                        <option value="Bihar" ${address.state === 'Bihar' ? 'selected' : ''}>Bihar</option>
+                        <option value="Chandigarh" ${address.state === 'Chandigarh' ? 'selected' : ''}>Chandigarh</option>
+                        <option value="Chhattisgarh" ${address.state === 'Chhattisgarh' ? 'selected' : ''}>Chhattisgarh</option>
+                        <option value="Dadra and Nagar Haveli and Daman and Diu" ${address.state === 'Dadra and Nagar Haveli and Daman and Diu' ? 'selected' : ''}>Dadra and Nagar Haveli and Daman and Diu</option>
                         <option value="Delhi" ${address.state === 'Delhi' ? 'selected' : ''}>Delhi</option>
+                        <option value="Goa" ${address.state === 'Goa' ? 'selected' : ''}>Goa</option>
+                        <option value="Gujarat" ${address.state === 'Gujarat' ? 'selected' : ''}>Gujarat</option>
+                        <option value="Haryana" ${address.state === 'Haryana' ? 'selected' : ''}>Haryana</option>
+                        <option value="Himachal Pradesh" ${address.state === 'Himachal Pradesh' ? 'selected' : ''}>Himachal Pradesh</option>
+                        <option value="Jammu and Kashmir" ${address.state === 'Jammu and Kashmir' ? 'selected' : ''}>Jammu and Kashmir</option>
+                        <option value="Jharkhand" ${address.state === 'Jharkhand' ? 'selected' : ''}>Jharkhand</option>
+                        <option value="Karnataka" ${address.state === 'Karnataka' ? 'selected' : ''}>Karnataka</option>
+                        <option value="Kerala" ${address.state === 'Kerala' ? 'selected' : ''}>Kerala</option>
+                        <option value="Ladakh" ${address.state === 'Ladakh' ? 'selected' : ''}>Ladakh</option>
+                        <option value="Lakshadweep" ${address.state === 'Lakshadweep' ? 'selected' : ''}>Lakshadweep</option>
+                        <option value="Madhya Pradesh" ${address.state === 'Madhya Pradesh' ? 'selected' : ''}>Madhya Pradesh</option>
+                        <option value="Maharashtra" ${address.state === 'Maharashtra' ? 'selected' : ''}>Maharashtra</option>
+                        <option value="Manipur" ${address.state === 'Manipur' ? 'selected' : ''}>Manipur</option>
+                        <option value="Meghalaya" ${address.state === 'Meghalaya' ? 'selected' : ''}>Meghalaya</option>
+                        <option value="Mizoram" ${address.state === 'Mizoram' ? 'selected' : ''}>Mizoram</option>
+                        <option value="Nagaland" ${address.state === 'Nagaland' ? 'selected' : ''}>Nagaland</option>
+                        <option value="Odisha" ${address.state === 'Odisha' ? 'selected' : ''}>Odisha</option>
+                        <option value="Puducherry" ${address.state === 'Puducherry' ? 'selected' : ''}>Puducherry</option>
+                        <option value="Punjab" ${address.state === 'Punjab' ? 'selected' : ''}>Punjab</option>
+                        <option value="Rajasthan" ${address.state === 'Rajasthan' ? 'selected' : ''}>Rajasthan</option>
+                        <option value="Sikkim" ${address.state === 'Sikkim' ? 'selected' : ''}>Sikkim</option>
+                        <option value="Tamil Nadu" ${address.state === 'Tamil Nadu' ? 'selected' : ''}>Tamil Nadu</option>
+                        <option value="Telangana" ${address.state === 'Telangana' ? 'selected' : ''}>Telangana</option>
+                        <option value="Tripura" ${address.state === 'Tripura' ? 'selected' : ''}>Tripura</option>
+                        <option value="Uttar Pradesh" ${address.state === 'Uttar Pradesh' ? 'selected' : ''}>Uttar Pradesh</option>
+                        <option value="Uttarakhand" ${address.state === 'Uttarakhand' ? 'selected' : ''}>Uttarakhand</option>
+                        <option value="West Bengal" ${address.state === 'West Bengal' ? 'selected' : ''}>West Bengal</option>
                     </select>
                 </div>
             </div>

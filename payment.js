@@ -228,6 +228,9 @@ function fillAddressForm(address) {
     
     if (address.state) {
         window.safeSetFormField('state', address.state);
+        if (window.refreshCheckoutStateDropdown) {
+            window.refreshCheckoutStateDropdown();
+        }
     }
     
     const phoneField = document.getElementById('phone');
@@ -260,12 +263,10 @@ function updateTotals() {
     
     if (!subtotalElement || !shippingElement || !totalElement || !discountRow || !discountAmount) return;
     
-    // Calculate subtotal (without shipping)
-    const subtotal = window.originalTotal - (window.appliedPromoType === 'shipping' ? 0 : window.shippingCost);
-    
     // Validate applied promo code before calculating total
     validateAppliedPromoCode();
     
+    const subtotal = Number(window.cartSubtotal) || 0;
     const newTotal = Math.max(0, window.originalTotal - window.currentDiscount);
     
     // Update display - show original subtotal
@@ -427,8 +428,13 @@ function applyPromoCode() {
     
     // If there's already a different code applied, remove it first
     if (window.appliedPromoCode && window.appliedPromoCode !== promoCode) {
+        if (window.appliedPromoType === 'shipping') {
+            window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+            window.originalTotal = window.cartSubtotal + window.shippingCost;
+        }
         window.currentDiscount = 0;
         window.appliedPromoCode = null;
+        window.appliedPromoType = null;
     }
     
     // Calculate and apply discount
@@ -491,10 +497,10 @@ function showPromoSuccessWithRemove(promoDetails, promoCode) {
 
 
 // Calculate and apply discount based on promo type
-function applyPromoDiscount(promoDetails, promoCode) {
+function calculatePromoDiscount(promoDetails) {
     let discountValue = 0;
     const promoType = promoDetails.type;
-    const total = window.originalTotal - window.shippingCost; // Subtotal without shipping
+    const total = Number(window.cartSubtotal) || 0;
     
     if (promoType === 'percentage') {
         discountValue = Math.round(total * (promoDetails.value / 100));
@@ -505,9 +511,20 @@ function applyPromoDiscount(promoDetails, promoCode) {
     } else if (promoType === 'fixed') {
         discountValue = Math.min(promoDetails.value, total);
     } else if (promoType === 'shipping') {
-        discountValue = 0; // No discount on subtotal
-        window.shippingCost = 0; // Set shipping to FREE
-        window.originalTotal = total; // Recalculate total without shipping
+        discountValue = 0;
+    }
+
+    return discountValue;
+}
+
+function applyPromoDiscount(promoDetails, promoCode) {
+    const promoType = promoDetails.type;
+    const total = Number(window.cartSubtotal) || 0;
+    const discountValue = calculatePromoDiscount(promoDetails);
+
+    if (promoType === 'shipping') {
+        window.shippingCost = 0;
+        window.originalTotal = total;
     }
     
     // Apply the discount
@@ -547,14 +564,11 @@ function validatePromoCode(promoDetails, promoCode, isSilent = false) {
         }
     }
     
-    // For shipping promo, we don't check min order on subtotal
-    if (promoDetails.type !== 'shipping') {
-        // Check minimum order
-        const minOrder = Number(promoDetails.minOrder) || 0;
-        if (window.originalTotal < minOrder) {
-            if (!isSilent) showPromoError(`Minimum order of ₹${minOrder.toFixed(2)} required`);
-            return false;
-        }
+    const minOrder = Number(promoDetails.minOrder) || 0;
+    const subtotal = Number(window.cartSubtotal) || 0;
+    if (subtotal < minOrder) {
+        if (!isSilent) showPromoError(`Add ₹${(minOrder - subtotal).toFixed(2)} more to use this promo`);
+        return false;
     }
     
     // Check usage limit
@@ -588,7 +602,7 @@ function displayAvailablePromoCodes() {
     
     // Filter to ONLY show codes with showOnCheckout = true
     const availableCodes = Object.entries(window.activePromoCodes).filter(
-        ([code, details]) => details.showOnCheckout === true
+        ([code, details]) => details.showOnCheckout === true && code !== window.appliedPromoCode
     );
     
     console.log('Displaying promo codes (visible only):', availableCodes);
@@ -599,7 +613,13 @@ function displayAvailablePromoCodes() {
     if (availableCodes.length === 0) {
         promoCodesGrid.style.display = 'none';
         noPromoCodes.style.display = 'block';
-        if (availablePromoCodes) availablePromoCodes.style.display = 'none';
+        const emptyMessage = noPromoCodes.querySelector('p');
+        if (emptyMessage) {
+            emptyMessage.textContent = window.appliedPromoCode
+                ? 'Your promo is applied. No other offers right now.'
+                : 'No promo codes available at the moment';
+        }
+        if (availablePromoCodes) availablePromoCodes.style.display = 'block';
         return;
     }
     
@@ -615,24 +635,24 @@ function displayAvailablePromoCodes() {
             ? 'FREE SHIPPING'
             : `₹${details.value.toFixed(2)} OFF`;
         
-        const isApplicable = window.originalTotal >= (Number(details.minOrder) || 0);
-        const isAlreadyApplied = window.appliedPromoCode === code;
+        const minOrder = Number(details.minOrder) || 0;
+        const subtotal = Number(window.cartSubtotal) || 0;
+        const isApplicable = subtotal >= minOrder;
         
         const promoCard = document.createElement('div');
         promoCard.className = 'promo-code-card';
-        if (isAlreadyApplied) promoCard.classList.add('active');
         if (!isApplicable) promoCard.classList.add('disabled');
         promoCard.setAttribute('data-code', code);
+        promoCard.setAttribute('aria-disabled', String(!isApplicable));
         
         promoCard.innerHTML = `
             <div class="promo-code-header">
                 <div class="promo-code-value">${code}</div>
-                ${isAlreadyApplied ? 
-                    '<div class="applied-badge"><i class="fas fa-check"></i> Applied</div>' : 
-                    ''}
             </div>
             <div class="promo-code-desc">${discountText} - ${details.description || ''}</div>
-            <div class="promo-code-terms">Min. order: ₹${Number(details.minOrder) || 0}</div>
+            <div class="promo-code-terms">${isApplicable
+                ? (minOrder > 0 ? `Minimum order: ₹${minOrder.toFixed(2)}` : 'No minimum order')
+                : `Add ₹${(minOrder - subtotal).toFixed(2)} more to qualify`}</div>
         `;
         
         if (isApplicable) {
@@ -667,8 +687,13 @@ function selectPromoCode(code) {
     
     // If there's already a different code applied, remove it first
     if (window.appliedPromoCode && window.appliedPromoCode !== code) {
+        if (window.appliedPromoType === 'shipping') {
+            window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+            window.originalTotal = window.cartSubtotal + window.shippingCost;
+        }
         window.currentDiscount = 0;
         window.appliedPromoCode = null;
+        window.appliedPromoType = null;
     }
     
     // Apply the discount
@@ -704,7 +729,7 @@ function showPromoSuccess(message) {
 }
 
 // Remove applied promo code (user can click REMOVE button)
-function removePromoCode() {
+function removePromoCode(showConfirmation = true) {
     if (!window.appliedPromoCode) {
         showNotification('No promo code applied', 'info');
         return;
@@ -712,17 +737,12 @@ function removePromoCode() {
     
     console.log('Removing promo code:', window.appliedPromoCode);
     
-    // If it was a shipping promo, restore shipping cost
-    if (window.appliedPromoType === 'shipping') {
-        const subtotal = window.originalTotal; // Current total includes only subtotal
-        window.shippingCost = subtotal > 0 ? 59 : 0; // Restore shipping
-        window.originalTotal = subtotal + window.shippingCost; // Recalculate total with shipping
-    }
-    
     // Clear promo data
     window.currentDiscount = 0;
     window.appliedPromoCode = null;
     window.appliedPromoType = null;
+    window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+    window.originalTotal = window.cartSubtotal + window.shippingCost;
     
     // Clear input field
     const promoInput = document.getElementById('promoCodeInput');
@@ -742,14 +762,30 @@ function removePromoCode() {
     // Refresh promo cards to show they're available again
     refreshPromoCodes();
     
-    // Show confirmation
-    showNotification('Promo code removed', 'info', 2000);
+    if (showConfirmation) {
+        showNotification('Promo code removed', 'info', 2000);
+    }
 }
 
 // Show error message (no remove button)
 function showPromoError(message) {
     const promoMessage = document.getElementById('promoMessage');
     if (!promoMessage) return;
+
+    if (window.appliedPromoCode) {
+        promoMessage.className = 'promo-message success';
+        let inlineError = promoMessage.querySelector('.promo-inline-error');
+        if (!inlineError) {
+            inlineError = document.createElement('div');
+            inlineError.className = 'promo-inline-error';
+            inlineError.setAttribute('role', 'alert');
+            promoMessage.appendChild(inlineError);
+        }
+        inlineError.textContent = message;
+        promoMessage.style.display = 'block';
+        setTimeout(() => inlineError.remove(), 3000);
+        return;
+    }
     
     promoMessage.className = 'promo-message error';
     promoMessage.innerHTML = `
@@ -772,6 +808,11 @@ function showPromoError(message) {
 function hideAllPromoMessages() {
     const promoMessage = document.getElementById('promoMessage');
     if (promoMessage) {
+        if (window.appliedPromoCode) {
+            promoMessage.querySelectorAll('.promo-inline-error').forEach((error) => error.remove());
+            promoMessage.style.display = 'block';
+            return;
+        }
         promoMessage.style.display = 'none';
     }
 }
@@ -797,7 +838,6 @@ function showNotification(message, type = 'info', duration = 3000) {
         notification.remove();
     }, duration);
 }
-
 
 // Handle quantity change in checkout
 function handleCheckoutQuantityChange(e) {
@@ -890,17 +930,223 @@ function showFieldError(field, message) {
     errorElement.textContent = message;
     
     field.parentNode.appendChild(errorElement);
+    if (field.id === 'state' && window.refreshCheckoutStateDropdown) {
+        window.refreshCheckoutStateDropdown();
+    }
 }
 
 // Clear field error
 function clearFieldError(e) {
     const field = e.target;
     field.classList.remove('error');
-    
     const existingError = field.parentNode.querySelector('.field-error');
     if (existingError) {
         existingError.remove();
     }
+    if (field.id === 'state' && window.refreshCheckoutStateDropdown) {
+        window.refreshCheckoutStateDropdown();
+    }
+}
+
+function setupStateDropdown() {
+    const select = document.getElementById('state');
+    if (!select || select.dataset.customized === 'true') return;
+
+    const formGroup = select.closest('.form-group');
+    const locationRow = select.closest('.form-row');
+    if (!formGroup || !locationRow) return;
+
+    locationRow.classList.add('checkout-location-row');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'state-picker';
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+    select.classList.add('state-picker-native');
+    select.tabIndex = -1;
+    select.setAttribute('aria-hidden', 'true');
+
+    const label = formGroup.querySelector('label[for="state"]');
+    const trigger = document.createElement('button');
+    trigger.id = 'stateDropdownButton';
+    trigger.className = 'state-picker-trigger';
+    trigger.type = 'button';
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', 'stateDropdownOptions');
+    trigger.setAttribute('aria-required', 'true');
+    if (label) {
+        trigger.setAttribute('aria-labelledby', `${label.id || 'stateFieldLabel'} stateDropdownValue`);
+        label.id = label.id || 'stateFieldLabel';
+        label.htmlFor = trigger.id;
+    }
+
+    const value = document.createElement('span');
+    value.id = 'stateDropdownValue';
+    const arrow = document.createElement('i');
+    arrow.className = 'fas fa-chevron-down';
+    arrow.setAttribute('aria-hidden', 'true');
+    trigger.append(value, arrow);
+
+    const optionsList = document.createElement('ul');
+    optionsList.id = 'stateDropdownOptions';
+    optionsList.className = 'state-picker-options';
+    optionsList.setAttribute('role', 'listbox');
+    optionsList.setAttribute('aria-label', 'States and union territories');
+    wrapper.append(trigger, optionsList);
+
+    let activeIndex = -1;
+    let typeahead = '';
+    let typeaheadTimeout;
+    const optionButtons = () => Array.from(optionsList.querySelectorAll('[role="option"]'));
+
+    const syncDisplay = () => {
+        const selectedOption = select.options[select.selectedIndex];
+        value.textContent = select.value ? selectedOption.textContent : 'Select state / UT';
+        trigger.classList.toggle('is-placeholder', !select.value);
+        trigger.setAttribute('aria-invalid', String(select.classList.contains('error')));
+        optionButtons().forEach((option, index) => {
+            const selected = option.dataset.value === select.value;
+            option.setAttribute('aria-selected', String(selected));
+            if (selected) activeIndex = index;
+        });
+    };
+
+    const setActiveOption = (index) => {
+        const options = optionButtons();
+        if (!options.length) return;
+        activeIndex = (index + options.length) % options.length;
+        options.forEach((option, optionIndex) => {
+            option.classList.toggle('is-active', optionIndex === activeIndex);
+        });
+        trigger.setAttribute('aria-activedescendant', options[activeIndex].id);
+        options[activeIndex].scrollIntoView({ block: 'nearest' });
+    };
+
+    const selectOption = (option) => {
+        select.value = option.dataset.value;
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        syncDisplay();
+        closeDropdown();
+        trigger.focus();
+    };
+
+    select.querySelectorAll('option').forEach((option, index) => {
+        if (!option.value) return;
+        const item = document.createElement('li');
+        item.setAttribute('role', 'presentation');
+        const button = document.createElement('button');
+        button.id = `stateDropdownOption${index}`;
+        button.type = 'button';
+        button.className = 'state-picker-option';
+        button.dataset.value = option.value;
+        button.textContent = option.textContent;
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-selected', 'false');
+        button.tabIndex = -1;
+        button.addEventListener('click', () => selectOption(button));
+        item.appendChild(button);
+        optionsList.appendChild(item);
+    });
+
+    const positionOptions = (makeRoom = false) => {
+        const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const desiredHeight = Math.min(320, Math.max(80, viewportHeight - trigger.offsetHeight - 24));
+        const minVisibleHeight = Math.min(desiredHeight, 160);
+        let bounds = trigger.getBoundingClientRect();
+        let spaceBelow = viewportHeight - bounds.bottom - 12;
+
+        if (makeRoom && spaceBelow < minVisibleHeight) {
+            window.scrollBy({ top: minVisibleHeight - spaceBelow, behavior: 'auto' });
+            bounds = trigger.getBoundingClientRect();
+            spaceBelow = viewportHeight - bounds.bottom - 12;
+        }
+
+        optionsList.style.maxHeight = `${Math.max(80, Math.min(desiredHeight, spaceBelow))}px`;
+    };
+
+    function closeDropdown() {
+        wrapper.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.removeAttribute('aria-activedescendant');
+    }
+
+    const openDropdown = () => {
+        if (wrapper.classList.contains('is-open')) return;
+        wrapper.classList.add('is-open');
+        positionOptions(true);
+        trigger.setAttribute('aria-expanded', 'true');
+        const selectedIndex = optionButtons().findIndex((option) => option.dataset.value === select.value);
+        setActiveOption(selectedIndex >= 0 ? selectedIndex : 0);
+    };
+
+    trigger.addEventListener('click', () => {
+        if (wrapper.classList.contains('is-open')) closeDropdown();
+        else openDropdown();
+    });
+    trigger.addEventListener('keydown', (event) => {
+        const options = optionButtons();
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!wrapper.classList.contains('is-open')) openDropdown();
+            else setActiveOption(activeIndex + (event.key === 'ArrowDown' ? 1 : -1));
+        } else if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (!wrapper.classList.contains('is-open')) openDropdown();
+            else if (options[activeIndex]) selectOption(options[activeIndex]);
+        } else if (event.key === 'Escape' && wrapper.classList.contains('is-open')) {
+            event.preventDefault();
+            closeDropdown();
+        } else if (event.key === 'Home' && wrapper.classList.contains('is-open')) {
+            event.preventDefault();
+            setActiveOption(0);
+        } else if (event.key === 'End' && wrapper.classList.contains('is-open')) {
+            event.preventDefault();
+            setActiveOption(options.length - 1);
+        } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            typeahead += event.key.toLocaleLowerCase();
+            window.clearTimeout(typeaheadTimeout);
+            typeaheadTimeout = window.setTimeout(() => { typeahead = ''; }, 700);
+            const matchIndex = options.findIndex((option) =>
+                option.textContent.toLocaleLowerCase().startsWith(typeahead)
+            );
+            if (matchIndex >= 0) {
+                if (!wrapper.classList.contains('is-open')) openDropdown();
+                setActiveOption(matchIndex);
+            }
+        }
+    });
+
+    trigger.addEventListener('blur', () => {
+        window.setTimeout(() => {
+            if (!wrapper.contains(document.activeElement)) {
+                closeDropdown();
+                if (!select.value) validateField({ target: select });
+            }
+        }, 0);
+    });
+
+    select.addEventListener('change', syncDisplay);
+    document.addEventListener('pointerdown', (event) => {
+        if (!wrapper.contains(event.target)) closeDropdown();
+    });
+    window.addEventListener('resize', () => {
+        if (wrapper.classList.contains('is-open')) positionOptions();
+    });
+    window.addEventListener('scroll', () => {
+        if (wrapper.classList.contains('is-open')) positionOptions();
+    }, true);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (wrapper.classList.contains('is-open')) positionOptions();
+        });
+    }
+
+    select.dataset.customized = 'true';
+    syncDisplay();
+    window.refreshCheckoutStateDropdown = syncDisplay;
 }
 
 // Validate Indian phone number
@@ -939,6 +1185,15 @@ function updateOrderSummary() {
                 <p>Add some delicious honey products to get started</p>
             </div>
         `;
+        window.cartSubtotal = 0;
+        window.shippingCost = 0;
+        window.originalTotal = 0;
+        window.currentDiscount = 0;
+        window.appliedPromoCode = null;
+        window.appliedPromoType = null;
+        const promoMessage = document.getElementById('promoMessage');
+        if (promoMessage) promoMessage.style.display = 'none';
+        updateTotals();
         
         if (checkoutBtn) {
             checkoutBtn.disabled = true;
@@ -962,6 +1217,7 @@ function updateOrderSummary() {
             if (product) {
                 const itemTotal = product.price * item.quantity;
                 subtotal += itemTotal;
+                const packaging = product.category === 'premium' ? 'PET Pack' : 'Glass Pack';
                 
                 const orderItem = document.createElement('div');
                 orderItem.className = 'order-item';
@@ -976,10 +1232,15 @@ function updateOrderSummary() {
                             <div class="order-item-header">
                                 <div class="order-item-info">
                                     <div class="order-item-name">${product.name}</div>
-                                    <div class="order-item-weight">${product.weight}</div>
                                 </div>
-<div class="order-item-price">₹${itemTotal.toFixed(2)}</div>
-</div>
+                                <div class="order-item-meta">
+                                    <div class="order-item-variants">
+                                        <span class="order-item-weight">${product.weight}</span>
+                                        <span class="order-item-packaging">${packaging}</span>
+                                    </div>
+                                    <div class="order-item-price">₹${itemTotal.toFixed(2)}</div>
+                                </div>
+                            </div>
                             <div class="order-item-footer">
                                 <div class="quantity-controls">
                                     <button class="quantity-btn-checkout" data-action="decrease" data-id="${item.id}">
@@ -1007,17 +1268,11 @@ function updateOrderSummary() {
         }
     }
     
-window.originalTotal = subtotal;
-    updateTotals();
-    refreshPromoCodes();
-    
-    let shipping = 0;
-if (subtotal > 0 ) {
-    shipping = 59;
-}
-window.shippingCost = shipping;
-window.originalTotal = subtotal + shipping;
+window.cartSubtotal = subtotal;
+window.shippingCost = window.appliedPromoType === 'shipping' ? 0 : (subtotal > 0 ? 59 : 0);
+window.originalTotal = subtotal + window.shippingCost;
 updateTotals();
+refreshPromoCodes();
 }
 
 // Enhanced validateCheckoutForm function
@@ -1863,13 +2118,14 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Enhanced setupCheckoutEventListeners function
 function setupCheckoutEventListeners() {
     const loginBtnCheckout = document.getElementById('loginBtnCheckout');
     const applyPromoBtn = document.getElementById('applyPromoBtn');
     const checkoutBtn = document.querySelector('.checkout-btn');
     const promoCodeInput = document.getElementById('promoCodeInput');
-    
+
+    setupStateDropdown();
+
     // Login/Logout button
     if (loginBtnCheckout) {
         loginBtnCheckout.addEventListener('click', function() {
@@ -2030,11 +2286,12 @@ function validateAppliedPromoCode() {
     // Validate the promo code with current cart state
     if (!validatePromoCode(promoDetails, promoCode, true)) {
         console.log('Applied promo code is no longer valid, removing...');
-        removePromoCode();
+        removePromoCode(false);
         showNotification('Promo code conditions no longer met', 'info');
         return false;
     }
     
+    window.currentDiscount = calculatePromoDiscount(promoDetails);
     return true;
 }
 
