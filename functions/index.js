@@ -1576,20 +1576,6 @@ exports.submitCareerApplication = onCall(
     const rateLimitRef = admin.firestore().collection("careerApplicationLimits").doc(ipHash);
     const now = Date.now();
     const rateWindowMs = 15 * 60 * 1000;
-    await admin.firestore().runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(rateLimitRef);
-      const limit = snapshot.data();
-      const windowStartedAt = limit?.windowStartedAt || 0;
-      const currentCount = now - windowStartedAt < rateWindowMs ? (limit?.count || 0) : 0;
-      if (currentCount >= 3) {
-        throw new HttpsError("resource-exhausted", "Please wait before submitting another application.");
-      }
-      transaction.set(rateLimitRef, {
-        windowStartedAt: currentCount ? windowStartedAt : now,
-        count: currentCount + 1,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    });
 
     const jobId = data.jobId === undefined || data.jobId === null ? "" : data.jobId;
     if (typeof jobId !== "string" || (jobId && !/^[A-Za-z0-9_-]{1,128}$/.test(jobId))) {
@@ -1623,6 +1609,14 @@ exports.submitCareerApplication = onCall(
         }
       });
       await admin.firestore().runTransaction(async (transaction) => {
+        const rateLimitSnapshot = await transaction.get(rateLimitRef);
+        const rateLimit = rateLimitSnapshot.data();
+        const windowStartedAt = rateLimit?.windowStartedAt || 0;
+        const currentCount = now - windowStartedAt < rateWindowMs ? (rateLimit?.count || 0) : 0;
+        if (currentCount >= 3) {
+          throw new HttpsError("resource-exhausted", "Please wait before submitting another application.");
+        }
+
         if (jobRef) {
           const jobSnapshot = await transaction.get(jobRef);
           const job = jobSnapshot.data();
@@ -1647,6 +1641,11 @@ exports.submitCareerApplication = onCall(
           resumePath: storagePath,
           submittedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+        transaction.set(rateLimitRef, {
+          windowStartedAt: currentCount ? windowStartedAt : now,
+          count: currentCount + 1,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
         if (jobRef) {
           transaction.update(jobRef, {
             applicationCount: admin.firestore.FieldValue.increment(1)
@@ -1667,6 +1666,9 @@ exports.submitCareerApplication = onCall(
         }
       }
       console.error("Career application storage failed:", error);
+      if (error instanceof HttpsError) {
+        throw error;
+      }
       throw new HttpsError("internal", "Unable to save your application right now.");
     }
 
