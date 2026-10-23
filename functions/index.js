@@ -1672,17 +1672,20 @@ exports.submitCareerApplication = onCall(
       throw new HttpsError("internal", "Unable to save your application right now.");
     }
 
+    const applicationType = jobId ? "Job application" : "General introduction for future opportunities";
     const text = [
-      "A career introduction was submitted through the Hexa Apiarium careers page.",
+      `${applicationType} submitted through the Hexa Apiarium careers page.`,
       "",
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${phone}`,
       `Location: ${location}`,
-      `Job: ${jobTitle}`,
+      ...(jobId ? [`Job: ${jobTitle}`] : []),
       "",
       "Note:",
-      message || "No note provided."
+      message || "No note provided.",
+      "",
+      `Open the dashboard: ${DASHBOARD_URL}`
     ].join("\n");
 
     try {
@@ -1691,7 +1694,7 @@ exports.submitCareerApplication = onCall(
         from: `"Hexa Apiarium Careers" <${GMAIL_EMAIL.value()}>`,
         to: ADMIN_EMAIL,
         replyTo: email,
-        subject: jobId ? `Job application: ${jobTitle}` : "Career introduction - Hexa Apiarium",
+        subject: jobId ? `New job application: ${jobTitle}` : "New future-opportunity introduction - Hexa Apiarium",
         text,
         attachments: [{
           filename,
@@ -1716,6 +1719,8 @@ exports.getCareerApplications = onCall(async (request) => {
       throw new HttpsError("invalid-argument", "Choose a valid job opening.");
     }
     query = query.where("jobId", "==", jobId);
+  } else {
+    query = query.where("jobId", "==", null);
   }
   const snapshot = await query.orderBy("submittedAt", "desc").limit(100).get();
 
@@ -1737,6 +1742,23 @@ exports.getCareerApplications = onCall(async (request) => {
       };
     })
   };
+});
+
+exports.getCareerApplicationsCount = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  const since = Number(request.data?.since);
+  if (!Number.isFinite(since) || since < 0 || since > Date.now()) {
+    throw new HttpsError("invalid-argument", "Choose a valid date for the application count.");
+  }
+
+  const result = await admin.firestore()
+    .collection("careerApplications")
+    .where("jobId", "==", null)
+    .where("submittedAt", ">", admin.firestore.Timestamp.fromMillis(since))
+    .count()
+    .get();
+
+  return { count: result.data().count };
 });
 
 exports.getCareerOpenings = onCall(async () => {

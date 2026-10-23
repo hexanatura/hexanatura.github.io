@@ -2681,6 +2681,9 @@ function setupProfileCloseButton() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initCommon();
+    if (new URLSearchParams(window.location.search).get('openFavorites') === 'true') {
+        likeIcon.click();
+    }
 });
 
 function listAllUserOrders() {

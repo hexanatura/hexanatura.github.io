@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuth() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isPaymentUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'paymentStatus', 'razorpayPaymentId', 'razorpayOrderId', 'razorpaySignature',
+        'paidAt', 'updatedAt', 'status', 'paymentMethod', 'paymentBank', 'paymentCardId', 'paymentWallet'
+      ]);
+    }
+
+    function isEmailVerificationUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'successEmailSent', 'successEmailSentAt', 'failureEmailSent', 'failureEmailSentAt',
+        'emailResentAt', 'emailResentCount', 'updatedAt'
+      ]);
+    }
+
+    // Promo Codes
+    match /promoCodes/{promoId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAuth() &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['usedCount']) &&
+        request.resource.data.usedCount == resource.data.usedCount + 1);
+      allow delete: if isAdmin();
+    }
+
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // Contact Submissions
+    match /contactSubmissions/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Publicly visible career openings; all job management is admin-only.
+    match /careerOpenings/{openingId} {
+      allow read: if isAdmin() || resource.data.status == 'open';
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Applications are private; public submissions are accepted only by Cloud Functions.
+    match /careerApplications/{applicationId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // Rate-limit records are managed only by Cloud Functions.
+    match /careerApplicationLimits/{limitId} {
+      allow read, write: if false;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow create: if isAuth() && isOwner(userId);
+      allow read: if isAdmin() || isOwner(userId);
+      allow update: if isAdmin() || (isOwner(userId) &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'displayName', 'phone', 'address', 'updatedAt', 'lastLoginAt', 'preferences'
+        ]));
+      allow delete: if isAdmin();
+
+      // User Orders
+      match /orders/{orderId} {
+        allow read: if isAdmin() || isOwner(userId);
+        allow create: if isOwner(userId) &&
+          request.resource.data.keys().hasAll(['items', 'total', 'createdAt']) &&
+          request.resource.data.total is number &&
+          request.resource.data.total >= 0;
+        allow update: if isAdmin() || (isOwner(userId) && isPaymentUpdate());
+        allow delete: if isAdmin();
+      }
+
+      // User Addresses
+      match /addresses/{addressId} {
+        allow read: if isAdmin() || isOwner(userId);
+        allow create: if isOwner(userId) &&
+          request.resource.data.keys().hasAll([
+            'label', 'name', 'address', 'phone', 'pincode', 'city', 'state', 'country', 'createdAt', 'isDefault'
+          ]);
+        allow update: if isOwner(userId) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'label', 'name', 'address', 'phone', 'pincode', 'city', 'state', 'country', 'updatedAt', 'isDefault'
+          ]);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Temporary Orders (Guest Checkout) - UPDATED
+    match /tempOrders/{tempOrderId} {
+      allow read: if isAdmin() || (isAuth() && request.auth.token.email == resource.data.email);
+      allow create: if
+        request.resource.data.email != null &&
+        request.resource.data.total is number &&
+        request.resource.data.total > 0 &&
+        request.resource.data.status in ['payment_initiated', 'pending'] &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.orderId != null;
+      allow update: if isAdmin() ||
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'paymentStatus', 'razorpayOrderId', 'razorpayPaymentId', 'razorpaySignature',
+          'status', 'updatedAt', 'paymentError', 'paymentAttempts'
+        ]);
+      allow delete: if isAdmin() ||
+        (request.resource == null && resource.data.expiresAt != null && request.time > resource.data.expiresAt);
+    }
+
+    // Global Orders - UPDATED
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.paymentStatus in ['paid', 'completed'] &&
+        request.resource.data.total is number &&
+        request.resource.data.total > 0 &&
+        request.resource.data.orderId != null;
+      allow update:
+        if isAdmin() ||
+        isPaymentUpdate() ||
+        isEmailVerificationUpdate() ||
+        (!isAuth() && resource.data.email == request.resource.data.email &&
+          (isPaymentUpdate() || isEmailVerificationUpdate())) ||
+        (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status', 'shippingStatus', 'trackingNumber', 'updatedAt', 'notes', 'adminNotes'
+        ]));
+      allow delete: if isAdmin();
+    }
+
+    // Admin Accounts
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Activity Log
+    match /activities/{activityId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.type in ['PROMO_USED', 'PROMO_USAGE_LIMIT_REACHED'] &&
+        request.resource.data.keys().hasAll(['type', 'timestamp'])
+      );
+      allow update, delete: if false;
+    }
+
+    // Products
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Settings
+    match /settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

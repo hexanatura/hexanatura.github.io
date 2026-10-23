@@ -2320,6 +2320,7 @@ body {
 <div class="menu-item" id="menuCareerApplications">
     <div class="menu-icon"><i class="fas fa-briefcase"></i></div>
     <div class="menu-text">Career Applications</div>
+    <span class="menu-count" id="countCareerApplications"></span>
 </div>
 
 <div class="menu-item" id="menuCareerJobs">
@@ -3253,7 +3254,8 @@ const LAST_OPEN = {
     customers: "lastOpenCustomers", 
     messages: "lastOpenMessages",
     reviews: "lastOpenReviews",
-    promo: "lastOpenPromo"
+    promo: "lastOpenPromo",
+    careerApplications: "lastOpenCareerApplications"
 };
 
     const menuListeners = {
@@ -4173,6 +4175,34 @@ function closeMobileMenu() {
         checkNewItems("contactSubmissions", LAST_OPEN.messages, document.getElementById("countMessages"), "timestamp");
         checkNewItems("reviews", LAST_OPEN.reviews, document.getElementById("countReviews"), "createdAt");
           checkNewItems("promoCodes", LAST_OPEN.promo, document.getElementById("countPromo"), "createdAt");
+        refreshCareerApplicationsCount();
+        if (careerApplicationsCountInterval) clearInterval(careerApplicationsCountInterval);
+        careerApplicationsCountInterval = setInterval(refreshCareerApplicationsCount, 60000);
+    }
+
+    let careerApplicationsCountInterval = null;
+    let careerApplicationsCountRequest = null;
+
+    async function refreshCareerApplicationsCount() {
+        const badge = document.getElementById("countCareerApplications");
+        if (!badge || careerApplicationsCountRequest) return;
+
+        const since = Number(localStorage.getItem(LAST_OPEN.careerApplications)) || Date.now();
+        careerApplicationsCountRequest = window.careerFunctions
+            .httpsCallable("getCareerApplicationsCount")({ since })
+            .then(result => {
+                const latestSince = Number(localStorage.getItem(LAST_OPEN.careerApplications)) || Date.now();
+                if (latestSince === since) {
+                    updateBadge(badge, Number(result.data.count) || 0);
+                }
+            })
+            .catch(error => {
+                console.error("Career application count could not be loaded:", error);
+            })
+            .finally(() => {
+                careerApplicationsCountRequest = null;
+            });
+        await careerApplicationsCountRequest;
     }
 
     function checkNewItems(collection, lastKey, badgeEl, field) {
@@ -4201,6 +4231,10 @@ function closeMobileMenu() {
                 unsubscribe();
             }
         });
+        if (careerApplicationsCountInterval) {
+            clearInterval(careerApplicationsCountInterval);
+            careerApplicationsCountInterval = null;
+        }
     }
 
     function setupEventListeners() {
@@ -4231,6 +4265,8 @@ function closeMobileMenu() {
                     loadMessagesPage();
                     break;
                 case 'Career Applications':
+                    localStorage.setItem(LAST_OPEN.careerApplications, Date.now());
+                    updateBadge(document.getElementById("countCareerApplications"), 0);
                     loadCareerApplicationsPage();
                     break;
                 case 'Job Openings':
@@ -4376,6 +4412,9 @@ function closeMobileMenu() {
         if (!localStorage.getItem(LAST_OPEN.messages)) localStorage.setItem(LAST_OPEN.messages, Date.now());
         if (!localStorage.getItem(LAST_OPEN.reviews)) localStorage.setItem(LAST_OPEN.reviews, Date.now());
             if (!localStorage.getItem(LAST_OPEN.promo)) localStorage.setItem(LAST_OPEN.promo, Date.now());
+        if (!localStorage.getItem(LAST_OPEN.careerApplications)) {
+            localStorage.setItem(LAST_OPEN.careerApplications, Date.now());
+        }
 
         if (!user) {
             if (loginModal) loginModal.style.display = "flex";

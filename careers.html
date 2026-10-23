@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.cdnfonts.com/css/akira-expanded" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="shared-header.css?v=20261023-responsive-2">
   <style>
     :root {
       color-scheme: light;
@@ -41,6 +45,362 @@
       font-family: var(--sans);
       font-weight: 500;
       -webkit-font-smoothing: antialiased;
+    }
+
+    .career-page-shell {
+      padding-top: 128px;
+    }
+
+    .career-announcement {
+      position: fixed;
+      z-index: 1100;
+      top: 0;
+      display: flex;
+      width: 100%;
+      min-height: 40px !important;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 16px !important;
+      background: linear-gradient(100deg, #4b211d, #71362d 52%, #4b211d);
+      color: #fff8e9;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.3 !important;
+      text-align: center;
+    }
+
+    .career-announcement i {
+      margin-right: 8px;
+      color: #f4c55b;
+    }
+
+    .career-announcement p {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 0;
+    }
+
+    .career-announcement span {
+      max-width: 100%;
+      text-wrap: balance;
+    }
+
+    .career-nav-overlay {
+      display: none;
+    }
+
+    #navBar .career-nav-links {
+      grid-column: 1 / 2;
+    }
+
+    #navBar .career-nav-links a {
+      text-transform: capitalize;
+    }
+
+    #navBar .career-nav-icons {
+      grid-column: 3 / 4;
+      min-height: 42px;
+      gap: 8px;
+    }
+
+    #navBar .career-nav-icons .icon {
+      text-decoration: none;
+    }
+
+    #navBar .career-nav-icons .icon:focus-visible {
+      outline: 2px solid #c99532;
+      outline-offset: 3px;
+    }
+
+    .career-favorites-backdrop {
+      position: fixed;
+      z-index: 1200;
+      inset: 0;
+      background: rgba(30, 22, 17, 0.48);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .career-favorites-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #careerFavoritesPanel {
+      position: fixed;
+      z-index: 1201;
+      inset: 0 auto 0 0;
+      display: flex;
+      width: min(450px, 100vw);
+      max-width: 100vw;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid rgba(126, 84, 44, 0.12);
+      background: #fbf8f2;
+      box-shadow: 10px 0 36px rgba(45, 31, 20, 0.2);
+      transform: translateX(-105%);
+      transition: transform 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
+      visibility: hidden;
+    }
+
+    #careerFavoritesPanel.active {
+      transform: translateX(0);
+      visibility: visible;
+    }
+
+    #careerFavoritesPanel .likes-header {
+      display: flex;
+      min-height: 92px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 22px;
+      background: linear-gradient(120deg, #54291f, #75402d);
+      color: #fffaf0;
+    }
+
+    #careerFavoritesPanel .likes-header h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      color: inherit;
+      font: 800 clamp(19px, 2vw, 23px)/1.25 "Quicksand", sans-serif;
+      letter-spacing: 0;
+    }
+
+    #careerFavoritesPanel .likes-header h2 > i {
+      color: #ffd88c;
+    }
+
+    #careerFavoritesPanel .likes-heading-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #careerFavoritesPanel .likes-heading-copy small {
+      color: rgba(255, 248, 237, 0.76);
+      font: 500 12px/1.4 "Quicksand", sans-serif;
+    }
+
+    #careerFavoritesPanel .close-likes {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    #careerFavoritesPanel .likes-content {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      padding: 18px 18px 24px;
+    }
+
+    #careerFavoritesPanel .likes-items {
+      flex: 1 1 auto;
+      margin: 0;
+      padding: 2px 5px 8px 2px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    #careerFavoritesPanel .like-item {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 13px;
+      margin: 0 0 13px;
+      padding: 13px;
+      border: 1px solid #eee5d8;
+      border-radius: 17px;
+      background: #fff;
+      box-shadow: 0 5px 16px rgba(68, 46, 28, 0.07);
+    }
+
+    #careerFavoritesPanel .like-item img {
+      width: 78px;
+      height: 92px;
+      flex: 0 0 78px;
+      padding: 5px;
+      border: 1px solid #f1e9dd;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    #careerFavoritesPanel .like-item-details {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    #careerFavoritesPanel .like-item-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #careerFavoritesPanel .like-item-title {
+      margin: 0;
+      color: #3f3028;
+      font: 800 14px/1.3 "Quicksand", sans-serif;
+    }
+
+    #careerFavoritesPanel .like-item-category,
+    #careerFavoritesPanel .like-item-weight {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      padding: 4px 8px;
+      border: 1px solid #eee0c8;
+      border-radius: 999px;
+      background: #fff8eb;
+      color: #74502d;
+      font: 700 10px/1 "Quicksand", sans-serif;
+      white-space: nowrap;
+    }
+
+    #careerFavoritesPanel .like-item-price {
+      margin: 0;
+      color: #653629;
+      font: 500 20px/1.1 "Oswald", sans-serif;
+    }
+
+    #careerFavoritesPanel .like-item-actions {
+      display: grid;
+      width: 100%;
+      grid-template-columns: minmax(0, 1fr) 40px;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    #careerFavoritesPanel .like-item-actions button {
+      min-height: 38px;
+      border-radius: 11px;
+      cursor: pointer;
+    }
+
+    #careerFavoritesPanel .add-to-cart-btn {
+      border: 1px solid #663426;
+      background: linear-gradient(135deg, #75402c, #92552f);
+      color: #fffaf0;
+      font: 800 12px "Quicksand", sans-serif;
+    }
+
+    #careerFavoritesPanel .remove-like {
+      border: 1px solid #f0d9d5;
+      background: #fff7f5;
+      color: #a3443e;
+      font-size: 15px;
+    }
+
+    #careerFavoritesPanel .empty-likes {
+      display: flex;
+      min-height: 280px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 18px;
+      color: #70665e;
+      text-align: center;
+    }
+
+    #careerFavoritesPanel .empty-likes[hidden] {
+      display: none;
+    }
+
+    #careerFavoritesPanel .empty-likes > i {
+      margin-bottom: 14px;
+      color: #decba9;
+      font-size: 34px;
+    }
+
+    #careerFavoritesPanel .empty-likes h3 {
+      margin-bottom: 8px;
+      color: #382f2a;
+      font: 800 18px/1.3 "Quicksand", sans-serif;
+    }
+
+    #careerFavoritesPanel .empty-likes p {
+      margin-bottom: 18px;
+      font: 500 13px/1.6 "Quicksand", sans-serif;
+    }
+
+    #careerFavoritesPanel .browse-products {
+      min-height: 42px;
+      padding: 10px 18px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #653629, #875035);
+      color: #fff;
+      font: 700 13px "Quicksand", sans-serif;
+      cursor: pointer;
+    }
+
+    .career-favorites-count {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      display: none;
+      min-width: 18px;
+      height: 18px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      border: 2px solid #fff;
+      border-radius: 10px;
+      background: #a84d3a;
+      color: #fff;
+      font: 700 10px/14px "Quicksand", sans-serif;
+    }
+
+    .career-favorites-count.visible {
+      display: flex;
+    }
+
+    .career-favorites-status {
+      margin: 0;
+      color: #356343;
+      font: 600 12px/1.5 "Quicksand", sans-serif;
+    }
+
+    @media (max-width: 767px) {
+      #careerFavoritesPanel {
+        inset: auto 0 0;
+        width: 100%;
+        height: min(88dvh, 760px);
+        max-height: 100dvh;
+        border: 0;
+        border-radius: 22px 22px 0 0;
+        transform: translateY(105%);
+      }
+
+      #careerFavoritesPanel.active {
+        transform: translateY(0);
+      }
+
+      #careerFavoritesPanel .likes-header {
+        min-height: 76px;
+        padding: 14px 18px;
+        border-radius: 22px 22px 0 0;
+      }
     }
 
     a {
@@ -368,7 +728,7 @@
 
     .openings {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr;
       align-items: center;
       gap: 40px;
       margin-bottom: 34px;
@@ -400,6 +760,35 @@
 
     .application-action {
       min-width: 200px;
+    }
+
+    .future-interest {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 28px;
+      margin: 0 auto 64px;
+      padding: clamp(24px, 4vw, 40px);
+      border-left: 3px solid var(--gold);
+      background: #f4f0e8;
+    }
+
+    .future-interest .eyebrow {
+      margin-bottom: 10px;
+    }
+
+    .future-interest h2 {
+      margin-bottom: 8px;
+      font-size: clamp(28px, 3.5vw, 40px);
+      line-height: 1.1;
+    }
+
+    .future-interest p:last-child {
+      max-width: 650px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
     }
 
     .application-action > p {
@@ -491,12 +880,16 @@
     }
 
     .application-dialog {
-      width: min(680px, calc(100% - 28px));
+      position: fixed;
+      inset: 12px;
+      width: min(680px, calc(100% - 24px));
       max-width: none;
-      max-height: min(860px, calc(100dvh - 32px));
+      max-height: calc(100vh - 24px);
+      max-height: calc(100dvh - 24px);
       margin: auto;
       padding: 0;
       overflow: auto;
+      overscroll-behavior: contain;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--paper);
@@ -511,6 +904,14 @@
 
     .dialog-inner {
       padding: clamp(22px, 5vw, 40px);
+    }
+
+    .dialog-header > div:first-child {
+      min-width: 0;
+    }
+
+    .dialog-header h2 {
+      overflow-wrap: anywhere;
     }
 
     .dialog-header {
@@ -762,6 +1163,12 @@
         min-width: 0;
       }
 
+      .future-interest {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
       .application-form {
         grid-template-columns: 1fr;
         gap: 14px;
@@ -776,6 +1183,126 @@
       .application-form .primary-link {
         width: 100%;
       }
+    }
+
+    @media (max-width: 1023px) {
+      .career-page-shell {
+        padding-top: 116px;
+      }
+
+      .career-announcement {
+        min-height: 40px;
+      }
+
+      .career-nav-overlay {
+        position: fixed;
+        z-index: 999;
+        inset: 0;
+        display: block;
+        background: rgba(22, 18, 16, 0.42);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+      }
+
+      .career-nav-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      #navBar .career-nav-icons {
+        position: absolute;
+        right: clamp(8px, 2vw, 18px);
+        display: flex !important;
+        gap: 2px;
+        width: auto;
+      }
+
+      #navBar .career-nav-links {
+        grid-column: auto;
+      }
+
+      #navBar .career-nav-icons .icon {
+        width: 32px;
+        height: 36px;
+        border-color: transparent !important;
+        background: transparent !important;
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .application-dialog {
+        inset: 8px;
+        width: calc(100% - 16px);
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+        border-radius: 7px;
+      }
+
+      .dialog-inner {
+        padding: 20px 18px 18px;
+      }
+
+      .dialog-header {
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .dialog-header h2 {
+        font-size: clamp(28px, 8vw, 38px);
+      }
+
+      .dialog-close {
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      #navBar .career-nav-icons {
+        gap: 0;
+      }
+
+      #navBar .career-nav-icons .icon {
+        width: 24px;
+        height: 30px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-height: 650px) {
+      .application-dialog {
+        inset-block: 6px;
+        max-height: calc(100vh - 12px);
+        max-height: calc(100dvh - 12px);
+      }
+
+      .dialog-inner {
+        padding-block: 18px;
+      }
+
+      .dialog-header {
+        margin-bottom: 14px;
+      }
+    }
+
+    #footer-placeholder footer ul,
+    #footer-placeholder footer .footer-contact-text,
+    #footer-placeholder footer .footer-enquiry-item a,
+    #footer-placeholder footer .footer-bottom p {
+      font-family: "Quicksand", Quicksand, sans-serif !important;
+      font-weight: 500 !important;
+    }
+
+    #footer-placeholder footer h3 {
+      font-weight: 700 !important;
+    }
+
+    #footer-placeholder footer .footer-social h4,
+    #footer-placeholder footer .footer-enquiries h4 {
+      font-family: "Quicksand", Quicksand, sans-serif !important;
+      font-weight: 600 !important;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -797,7 +1324,49 @@
   </style>
 </head>
 <body>
-  <main>
+  <div class="career-announcement" id="notificationBar" role="region" aria-label="Career announcement">
+    <p><span>Explore meaningful work and future career possibilities with Hexa Apiarium</span></p>
+  </div>
+  <nav id="navBar" aria-label="Main navigation">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">
+      <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
+    <ul class="nav-links career-nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="careers.html" class="active" aria-current="page">Career</a></li>
+    </ul>
+    <a class="logo" href="index.html" aria-label="Natura home">
+      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119" alt="Natura Honey">
+    </a>
+    <div class="nav-icons career-nav-icons" aria-label="Favorites and social links">
+      <button class="icon" id="careerFavoritesButton" type="button" aria-label="Open favorites" aria-controls="careerFavoritesPanel" aria-expanded="false" title="Favorites"><i class="far fa-heart" aria-hidden="true"></i><span class="career-favorites-count" id="careerFavoritesCount" aria-live="polite"></span></button>
+      <a class="icon" href="https://www.linkedin.com/company/hexa-apiarium-pvt-ltd/" target="_blank" rel="noopener noreferrer" aria-label="Hexa Apiarium on LinkedIn" title="LinkedIn"><i class="fab fa-linkedin-in" aria-hidden="true"></i></a>
+      <a class="icon" href="https://wa.me/919495928394" target="_blank" rel="noopener noreferrer" aria-label="Contact Natura Honey on WhatsApp" title="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>
+      <a class="icon" href="careers.html#openings" aria-label="Explore career opportunities" title="Career opportunities"><i class="fas fa-briefcase" aria-hidden="true"></i></a>
+    </div>
+  </nav>
+  <div class="career-nav-overlay" id="career-nav-overlay" aria-hidden="true"></div>
+  <div class="career-favorites-backdrop" id="careerFavoritesBackdrop"></div>
+  <aside id="careerFavoritesPanel" aria-labelledby="careerFavoritesTitle" aria-modal="true" role="dialog" tabindex="-1">
+    <div class="likes-header">
+      <h2 id="careerFavoritesTitle"><i class="fas fa-heart" aria-hidden="true"></i><span class="likes-heading-copy"><span>Your Favorites</span><small>Saved packs, ready when you are</small></span></h2>
+      <button class="close-likes" id="closeCareerFavorites" type="button" aria-label="Close favorites">&times;</button>
+    </div>
+    <div class="likes-content">
+      <div class="likes-items" id="careerFavoritesItems"></div>
+      <div class="empty-likes" id="careerEmptyFavorites">
+        <i class="far fa-heart" aria-hidden="true"></i>
+        <h3>No favorites yet</h3>
+        <p>Start adding products you love to your favorites list.</p>
+        <button class="browse-products" id="browseCareerProducts" type="button">Browse Products</button>
+      </div>
+      <p class="career-favorites-status" id="careerFavoritesStatus" role="status" aria-live="polite"></p>
+    </div>
+  </aside>
+  <main class="career-page-shell">
     <section class="hero page-width" aria-labelledby="page-title">
       <div class="hero-copy">
         <p class="eyebrow">Careers · Hexa Apiarium</p>
@@ -854,15 +1423,20 @@
       <div class="openings-copy">
         <p class="eyebrow">Current openings</p>
         <h2 id="openings-title">Explore opportunities with us.</h2>
-        <p id="openings-description">If there’s no current role that fits, introduce yourself and tell us what kind of work you’re looking for. We’ll keep your details for future opportunities.</p>
-      </div>
-      <div class="application-action">
-        <button class="primary-link" id="open-application" type="button"><span>Introduce yourself</span><span aria-hidden="true">↗</span></button>
-        <p>Contact Hexa Apiarium · Thalassery, Kerala</p>
+        <p id="openings-description">Review the roles currently listed and apply directly to the one that matches your experience.</p>
       </div>
       <div class="job-listings" id="job-listings" aria-live="polite"></div>
     </section>
+    <section class="future-interest page-width" aria-labelledby="future-interest-title">
+      <div>
+        <p class="eyebrow">Looking beyond today’s openings?</p>
+        <h2 id="future-interest-title">Introduce yourself for future opportunities.</h2>
+        <p>This is a general expression of interest, not an application for a listed role. Tell us about your background and the kind of work you may be interested in as our team grows.</p>
+      </div>
+      <button class="primary-link" id="open-application" type="button"><span>Introduce yourself</span><span aria-hidden="true">↗</span></button>
+    </section>
   </main>
+  <div id="footer-placeholder"></div>
   <dialog class="application-dialog" id="application-dialog" aria-labelledby="application-title">
     <div class="dialog-inner">
       <div class="dialog-header">
@@ -910,6 +1484,174 @@
       </form>
     </div>
   </dialog>
+  <script>
+    const mobileMenuButton = document.getElementById("mobileMenuBtn");
+    const careerNav = document.getElementById("navBar");
+    const careerNavLinks = document.getElementById("navLinks");
+    const careerNavOverlay = document.getElementById("career-nav-overlay");
+    const careerFavoritesButton = document.getElementById("careerFavoritesButton");
+    const careerFavoritesPanel = document.getElementById("careerFavoritesPanel");
+    const careerFavoritesBackdrop = document.getElementById("careerFavoritesBackdrop");
+    const careerFavoritesItems = document.getElementById("careerFavoritesItems");
+    const careerEmptyFavorites = document.getElementById("careerEmptyFavorites");
+    const careerFavoritesCount = document.getElementById("careerFavoritesCount");
+    const careerFavoritesStatus = document.getElementById("careerFavoritesStatus");
+    const careerFavoriteProducts = [
+      { id: 1, name: "Natura Agmark Honey", price: 420, weight: "1Kg", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725", category: "crystal" },
+      { id: 2, name: "Natura Agmark Honey", price: 230, weight: "500g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443", category: "crystal" },
+      { id: 3, name: "Natura Agmark Honey", price: 65, weight: "100g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748", category: "crystal" },
+      { id: 4, name: "Natura Agmark Honey", price: 40, weight: "50g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792", category: "crystal" },
+      { id: 5, name: "Natura Agmark Honey", price: 370, weight: "1Kg", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459", category: "premium" },
+      { id: 6, name: "Natura Agmark Honey", price: 200, weight: "500g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598", category: "premium" }
+    ];
+    let careerFavoriteIds = [];
+
+    const setCareerMenuOpen = (isOpen) => {
+      mobileMenuButton.setAttribute("aria-expanded", String(isOpen));
+      mobileMenuButton.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+      mobileMenuButton.innerHTML = `<i class="fas fa-${isOpen ? "xmark" : "bars"}" aria-hidden="true"></i>`;
+      careerNav.classList.toggle("menu-open", isOpen);
+      careerNavLinks.classList.toggle("active", isOpen);
+      careerNavOverlay.classList.toggle("active", isOpen);
+      document.body.classList.toggle("menu-open", isOpen);
+    };
+
+    mobileMenuButton.addEventListener("click", () => {
+      setCareerMenuOpen(mobileMenuButton.getAttribute("aria-expanded") !== "true");
+    });
+    careerNavOverlay.addEventListener("click", () => setCareerMenuOpen(false));
+    careerNavLinks.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setCareerMenuOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setCareerMenuOpen(false);
+    });
+
+    const readCareerFavoriteIds = () => {
+      const stored = localStorage.getItem("guestLikes");
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) throw new Error("Saved favorites are not in the expected format.");
+      return [...new Set(parsed.map(Number).filter((id) => careerFavoriteProducts.some((product) => product.id === id)))];
+    };
+
+    const renderCareerFavorites = () => {
+      careerFavoritesCount.textContent = String(careerFavoriteIds.length);
+      careerFavoritesCount.classList.toggle("visible", careerFavoriteIds.length > 0);
+      careerEmptyFavorites.hidden = careerFavoriteIds.length > 0;
+      careerFavoritesItems.replaceChildren();
+
+      careerFavoriteIds.forEach((id) => {
+        const product = careerFavoriteProducts.find((item) => item.id === id);
+        if (!product) return;
+        const packaging = product.category === "premium" ? "PET Pack" : "Glass Pack";
+        const item = document.createElement("article");
+        item.className = "like-item";
+        item.innerHTML = `
+          <img src="${product.image}" alt="${product.name}, ${product.weight}" loading="lazy">
+          <div class="like-item-details">
+            <div class="like-item-heading">
+              <h3 class="like-item-title">${product.name}</h3>
+              <span class="like-item-category">${packaging}</span>
+            </div>
+            <span class="like-item-weight">${product.weight}</span>
+            <p class="like-item-price">₹${product.price.toFixed(2)}</p>
+            <div class="like-item-actions">
+              <button class="add-to-cart-btn" type="button" data-cart-product="${product.id}">
+                <i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>
+              </button>
+              <button class="remove-like" type="button" data-remove-favorite="${product.id}" aria-label="Remove ${product.name} ${product.weight} from favorites">
+                <i class="fas fa-heart" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>`;
+        careerFavoritesItems.appendChild(item);
+      });
+    };
+
+    const refreshCareerFavorites = () => {
+      try {
+        careerFavoriteIds = readCareerFavoriteIds();
+        renderCareerFavorites();
+        careerFavoritesStatus.textContent = "";
+      } catch (error) {
+        console.error("Career page favorites could not be read:", error);
+        careerFavoritesStatus.textContent = "Favorites could not be loaded. Please refresh the page and try again.";
+        careerFavoritesCount.classList.remove("visible");
+        careerEmptyFavorites.hidden = false;
+        careerFavoritesItems.replaceChildren();
+      }
+    };
+
+    const setCareerFavoritesOpen = (isOpen) => {
+      careerFavoritesPanel.classList.toggle("active", isOpen);
+      careerFavoritesBackdrop.classList.toggle("active", isOpen);
+      careerFavoritesPanel.setAttribute("aria-hidden", String(!isOpen));
+      careerFavoritesButton.setAttribute("aria-expanded", String(isOpen));
+      document.body.style.overflow = isOpen ? "hidden" : "";
+      if (isOpen) {
+        refreshCareerFavorites();
+        document.getElementById("closeCareerFavorites").focus();
+      } else {
+        careerFavoritesButton.focus();
+      }
+    };
+
+    careerFavoritesButton.addEventListener("click", () => setCareerFavoritesOpen(true));
+    document.getElementById("closeCareerFavorites").addEventListener("click", () => setCareerFavoritesOpen(false));
+    careerFavoritesBackdrop.addEventListener("click", () => setCareerFavoritesOpen(false));
+    document.getElementById("browseCareerProducts").addEventListener("click", () => {
+      window.location.href = "shop.html";
+    });
+    careerFavoritesItems.addEventListener("click", (event) => {
+      const removeButton = event.target.closest("[data-remove-favorite]");
+      if (removeButton) {
+        careerFavoriteIds = careerFavoriteIds.filter((id) => id !== Number(removeButton.dataset.removeFavorite));
+        localStorage.setItem("guestLikes", JSON.stringify(careerFavoriteIds));
+        renderCareerFavorites();
+        careerFavoritesStatus.textContent = "Favorite removed.";
+        return;
+      }
+
+      const addButton = event.target.closest("[data-cart-product]");
+      if (!addButton) return;
+      try {
+        const cart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+        if (!Array.isArray(cart)) throw new Error("Saved cart is not in the expected format.");
+        const productId = Number(addButton.dataset.cartProduct);
+        const existingItem = cart.find((item) => Number(item.id) === productId);
+        if (existingItem) existingItem.quantity = Number(existingItem.quantity || 0) + 1;
+        else cart.push({ id: productId, quantity: 1 });
+        localStorage.setItem("guestCart", JSON.stringify(cart));
+        careerFavoritesStatus.textContent = "Added to your cart. Your cart is ready on the shop page.";
+      } catch (error) {
+        console.error("Favorite product could not be added to the cart:", error);
+        careerFavoritesStatus.textContent = "Could not update your cart. Please try again.";
+      }
+    });
+    window.addEventListener("storage", (event) => {
+      if (event.key === "guestLikes") refreshCareerFavorites();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && careerFavoritesPanel.classList.contains("active")) {
+        setCareerFavoritesOpen(false);
+      }
+    });
+    refreshCareerFavorites();
+
+    fetch("footer.html")
+      .then((response) => {
+        if (!response.ok) throw new Error(`Footer request failed with status ${response.status}.`);
+        return response.text();
+      })
+      .then((footerMarkup) => {
+        document.getElementById("footer-placeholder").innerHTML = footerMarkup;
+      })
+      .catch((error) => {
+        console.error("Shared footer could not be loaded:", error);
+        document.getElementById("footer-placeholder").textContent = "The site footer could not be loaded. Please refresh the page.";
+      });
+  </script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-functions-compat.js"></script>
   <script>
@@ -926,6 +1668,7 @@
     const applicationForm = document.getElementById("application-form");
     const applicationStatus = document.getElementById("application-status");
     const submitApplicationButton = document.getElementById("submit-application");
+    const closeApplicationButton = document.getElementById("close-application");
     const applicationTitle = document.getElementById("application-title");
     const applicationEyebrow = document.getElementById("application-eyebrow");
     const applicationDescription = document.getElementById("application-description");
@@ -940,14 +1683,21 @@
     };
 
     const openApplication = (job = null) => {
+      applicationForm.reset();
+      submitApplicationButton.disabled = false;
+      closeApplicationButton.disabled = false;
       applicationStatus.textContent = "";
       delete applicationStatus.dataset.state;
       applicationForm.elements.jobId.value = job?.id || "";
-      applicationEyebrow.textContent = job ? "Job application" : "Future opportunities";
+      applicationEyebrow.textContent = job ? "Application for current opening" : "Future opportunities";
       applicationTitle.textContent = job ? `Apply for ${job.title}` : "Introduce yourself.";
       applicationDescription.textContent = job
         ? `Share your details and attach your resume to apply for ${job.title} at Hexa Apiarium.`
         : "Share a little about yourself and attach your resume. We’ll securely keep your details for future opportunities.";
+      applicationForm.elements.message.placeholder = job
+        ? `Why are you interested in the ${job.title} role?`
+        : "What kind of work are you interested in?";
+      submitApplicationButton.querySelector("span").textContent = job ? "Send application" : "Send introduction";
       applicationDialog.showModal();
       document.getElementById("applicant-name").focus();
     };
@@ -965,12 +1715,12 @@
       });
     });
 
-    document.getElementById("close-application").addEventListener("click", () => {
+    closeApplicationButton.addEventListener("click", () => {
       applicationDialog.close();
     });
 
     applicationDialog.addEventListener("click", (event) => {
-      if (event.target === applicationDialog) applicationDialog.close();
+      if (event.target === applicationDialog && !submitApplicationButton.disabled) applicationDialog.close();
     });
 
     applicationDialog.addEventListener("cancel", (event) => {
@@ -999,12 +1749,12 @@
         if (!openings.length) {
           jobListings.innerHTML = "";
           openingsTitle.textContent = "No roles are listed right now.";
-          openingsDescription.textContent = "There are no specific roles listed at the moment. If you’re interested in future opportunities, send a short introduction about your experience and the kind of work you’re looking for. We’ll share openings here when they become available.";
+          openingsDescription.textContent = "There are no specific roles listed at the moment. Check back here for new openings.";
           return;
         }
 
         openingsTitle.textContent = "Find the work that fits you.";
-        openingsDescription.textContent = "Explore current opportunities with Hexa Apiarium and learn where your experience can make a difference.";
+        openingsDescription.textContent = "Explore current opportunities with Hexa Apiarium and apply directly to a role that fits your experience.";
         jobListings.innerHTML = openings.map((job) => {
           const detailList = (label, items) => items.length
             ? `<div><h4>${label}</h4><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
@@ -1060,9 +1810,13 @@
       }
 
       submitApplicationButton.disabled = true;
+      closeApplicationButton.disabled = true;
       submitApplicationButton.querySelector("span").textContent = "Sending…";
       applicationStatus.textContent = "";
       delete applicationStatus.dataset.state;
+      const jobId = String(formData.get("jobId") || "");
+      const isJobApplication = Boolean(jobId);
+      let submissionSucceeded = false;
 
       try {
         const resumeData = await new Promise((resolve, reject) => {
@@ -1093,21 +1847,29 @@
 
         applicationStatus.dataset.state = "success";
         applicationStatus.textContent = result.data.notificationSent
-          ? "Thank you. Your application has been received by Hexa Apiarium."
-          : "Thank you. Your application has been saved. The team will review it shortly.";
+          ? isJobApplication
+            ? "Thank you. Your application for this role has been received by Hexa Apiarium."
+            : "Thank you. Your introduction for future opportunities has been received by Hexa Apiarium."
+          : isJobApplication
+            ? "Thank you. Your application has been saved. The team will review it shortly."
+            : "Thank you. Your introduction has been saved for future opportunities.";
+        submissionSucceeded = true;
         applicationForm.reset();
-        applicationEyebrow.textContent = "Future opportunities";
-        applicationTitle.textContent = "Introduce yourself.";
-        applicationDescription.textContent = "Share a little about yourself and attach your resume. We’ll securely keep your details for future opportunities.";
+        applicationForm.elements.jobId.value = jobId;
       } catch (error) {
         console.error("Career application submission failed:", error);
         applicationStatus.dataset.state = "error";
         applicationStatus.textContent = error.code === "functions/resource-exhausted"
           ? "The application service is busy. Please wait a moment and try again."
-          : "We couldn’t send your introduction. Please try again in a moment.";
+          : `We couldn’t send your ${isJobApplication ? "application" : "introduction"}. Please try again in a moment.`;
       } finally {
-        submitApplicationButton.disabled = false;
-        submitApplicationButton.querySelector("span").textContent = "Send introduction";
+        submitApplicationButton.disabled = submissionSucceeded;
+        closeApplicationButton.disabled = false;
+        if (!submissionSucceeded) {
+          submitApplicationButton.querySelector("span").textContent = isJobApplication ? "Send application" : "Send introduction";
+        } else {
+          submitApplicationButton.querySelector("span").textContent = "Submitted";
+        }
       }
     });
 

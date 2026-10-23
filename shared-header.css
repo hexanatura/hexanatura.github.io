@@ -162,10 +162,11 @@
   background: transparent;
   color: #493833 !important;
   font-family: 'Quicksand', 'Nirmala UI', sans-serif !important;
-  font-size: 13px !important;
-  font-weight: 700;
-  letter-spacing: 0.075em;
+  font-size: 14px !important;
+  font-weight: 600;
+  letter-spacing: 0.045em;
   line-height: normal;
+  text-transform: capitalize;
   text-decoration: none;
   transition: color 0.2s ease;
   touch-action: manipulation;
@@ -581,8 +582,9 @@
     align-items: center;
     padding: 12px 14px !important;
     border-radius: 12px;
-    font-size: 15px !important;
-    letter-spacing: 0.04em;
+    font-size: 16px !important;
+    font-weight: 600;
+    letter-spacing: 0.035em;
   }
 
   #navBar .nav-links a::after {
@@ -768,5 +770,197 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .content-wrapper > .page-header .rectangle-banner .banner-row {
+    font-size: clamp(38px, 13vw, 76px) !important;
+  }
+
+  #mainContent .content-section {
+    width: calc(100% - 24px);
+    max-width: 100%;
+    margin: 0 auto 28px;
+    padding: clamp(16px, 4vw, 24px);
+    border-radius: 14px;
+  }
+
+  #mainContent .content-section h2 {
+    margin-bottom: 18px;
+    font-size: clamp(21px, 6vw, 30px) !important;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  #mainContent .content-section h3 {
+    margin: 20px 0 10px;
+    padding-bottom: 8px;
+    font-size: clamp(15px, 4.4vw, 18px) !important;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  #mainContent .content-section p,
+  #mainContent .content-section li {
+    font-size: clamp(14px, 3.8vw, 15px) !important;
+    line-height: 1.65;
+    letter-spacing: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  #mainContent .content-section ul {
+    margin: 14px 0;
+    padding-left: 18px;
+  }
+
+  #mainContent .policy-highlight {
+    margin: 18px 0;
+    padding: 14px;
+  }
+
+  #mainContent .last-updated {
+    margin-top: 20px;
+    padding-top: 14px;
+    font-size: 12px !important;
+    line-height: 1.6;
+  }
+
+  #mainContent .track-order-page {
+    width: 100%;
+    max-width: 100%;
+    margin: 20px auto;
+    padding: 0 12px;
+  }
+
+  #mainContent .order-input-section,
+  #mainContent .order-status-section {
+    margin-bottom: 22px;
+    padding: clamp(14px, 4vw, 20px);
+    border-radius: 12px;
+  }
+
+  #mainContent .input-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #mainContent .input-group input {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+
+  #mainContent .btn-track {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 11px 16px;
+    font-size: 14px;
+  }
+
+  #mainContent .order-header {
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  #mainContent .order-info-left,
+  #mainContent .order-info-right {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #mainContent .order-id-display {
+    font-size: clamp(17px, 5vw, 24px);
+    overflow-wrap: anywhere;
+  }
+
+  #mainContent .order-date-display,
+  #mainContent .customer-info,
+  #mainContent .status-label {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  #profilePage {
+    padding: 84px 12px 28px;
+  }
+
+  #profilePage .profile-header,
+  #profilePage .profile-section {
+    margin-bottom: 14px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  #profilePage .profile-info h1 {
+    font-size: clamp(20px, 6vw, 25px);
+    line-height: 1.25;
+  }
+
+  #profilePage .profile-section .section-title {
+    font-size: clamp(16px, 4.7vw, 20px);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #profilePage .profile-section p,
+  #profilePage .profile-section label,
+  #profilePage .profile-section .no-orders {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  #profilePage .profile-section :where(input, select, textarea, button) {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  #mainContent .content-section {
+    padding: 28px 4%;
+  }
+
+  #mainContent .content-section h2 {
+    font-size: clamp(28px, 4.5vw, 36px);
+  }
+
+  #mainContent .content-section h3 {
+    font-size: clamp(17px, 2.6vw, 21px);
+  }
+
+  #mainContent .content-section p,
+  #mainContent .content-section li {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  #mainContent .track-order-page {
+    max-width: 100%;
+    padding-inline: 16px;
+  }
+
+  #mainContent .order-input-section,
+  #mainContent .order-status-section {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 380px) {
+  #mainContent .content-section {
+    width: calc(100% - 16px);
+    padding: 14px;
+  }
+
+  #mainContent .track-order-page {
+    padding: 0 8px;
+  }
+
+  #mainContent .order-input-section,
+  #mainContent .order-status-section,
+  #profilePage .profile-header,
+  #profilePage .profile-section {
+    padding: 13px;
   }
 }
