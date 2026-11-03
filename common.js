@@ -98,7 +98,7 @@ const products = [
         ],
         price: 420.00, 
         weight: "1Kg",
-        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725",
+        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443",
         category: "crystal"
     },
     { 
@@ -111,7 +111,7 @@ const products = [
         ],
         price: 230.00, 
         weight: "500g",
-        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443",
+        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725",
         category: "crystal"
     },
     { 
