@@ -1,0 +1,139 @@
+<section class="product-stock-page" aria-labelledby="product-stock-title">
+  <style>
+    .product-stock-page {
+      max-width: 1050px;
+      margin: 0 auto;
+      padding: 24px;
+      color: #0f172a;
+      font-family: Inter, sans-serif;
+    }
+    .product-stock-page h1 {
+      margin: 0 0 8px;
+      font: 700 26px/1.2 Outfit, Inter, sans-serif;
+    }
+    .product-stock-page > p {
+      margin: 0 0 20px;
+      color: #64748b;
+    }
+    .product-stock-status {
+      min-height: 24px;
+      margin-bottom: 12px;
+      color: #475569;
+      font-size: 14px;
+    }
+    .product-stock-list {
+      display: grid;
+      gap: 10px;
+    }
+    .product-stock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .product-stock-name {
+      font-weight: 600;
+    }
+    .product-stock-select {
+      min-width: 150px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      color: #0f172a;
+      font: inherit;
+    }
+    .product-stock-select:disabled {
+      opacity: .65;
+    }
+    @media (max-width: 600px) {
+      .product-stock-page {
+        padding: 14px;
+      }
+      .product-stock-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .product-stock-select {
+        width: 100%;
+      }
+    }
+  </style>
+  <h1 id="product-stock-title">Product stock</h1>
+  <p>Choose whether each pack can currently be added to cart. Changes are saved for the storefront.</p>
+  <div class="product-stock-status" id="productStockStatus" role="status" aria-live="polite">Loading product stock…</div>
+  <div class="product-stock-list" id="productStockList"></div>
+</section>
+<script>
+(() => {
+  const products = [
+    { id: 1, name: "Natura AGMARK Honey · 1 kg Glass Pack" },
+    { id: 2, name: "Natura AGMARK Honey · 500 g Glass Pack" },
+    { id: 3, name: "Natura AGMARK Honey · 100 g Glass Pack" },
+    { id: 4, name: "Natura AGMARK Honey · 50 g Glass Pack" },
+    { id: 5, name: "Natura AGMARK Honey · 1 kg PET Pack" },
+    { id: 6, name: "Natura AGMARK Honey · 500 g PET Pack" }
+  ];
+  const db = firebase.firestore();
+  const list = document.getElementById("productStockList");
+  const status = document.getElementById("productStockStatus");
+
+  function renderProduct(product, inStock) {
+    const row = document.createElement("label");
+    row.className = "product-stock-row";
+    const name = document.createElement("span");
+    name.className = "product-stock-name";
+    name.textContent = product.name;
+    const select = document.createElement("select");
+    select.className = "product-stock-select";
+    select.setAttribute("aria-label", `Stock status for ${product.name}`);
+    select.innerHTML = '<option value="true">In stock</option><option value="false">Out of stock</option>';
+    select.value = String(inStock);
+    let savedInStock = inStock;
+    select.addEventListener("change", async () => {
+      const nextInStock = select.value === "true";
+      select.disabled = true;
+      status.textContent = `Saving ${product.name}…`;
+      try {
+        await db.collection("products").doc(String(product.id)).set({
+          inStock: nextInStock,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        savedInStock = nextInStock;
+        status.textContent = `${product.name} is now ${nextInStock ? "in stock" : "out of stock"}.`;
+      } catch (error) {
+        console.error(`Unable to update stock for product ${product.id}:`, error);
+        select.value = String(savedInStock);
+        status.textContent = `Could not save ${product.name}. Check your connection and admin access, then try again.`;
+      } finally {
+        select.disabled = false;
+      }
+    });
+    row.append(name, select);
+    list.appendChild(row);
+  }
+
+  async function loadProductStock() {
+    try {
+      const snapshots = await Promise.all(products.map(product =>
+        db.collection("products").doc(String(product.id)).get()
+      ));
+      snapshots.forEach((snapshot, index) => {
+        const data = snapshot.data();
+        const inStock = data && typeof data.inStock === "boolean" ? data.inStock : true;
+        renderProduct(products[index], inStock);
+      });
+      status.textContent = "All products are in stock unless their status is changed here.";
+    } catch (error) {
+      console.error("Unable to load product stock:", error);
+      status.textContent = "Could not load product stock. Check your connection and admin access, then reload this section.";
+    }
+  }
+
+  loadProductStock();
+})();
+</script>

@@ -22,6 +22,7 @@ const quickViewTitle = document.getElementById('quickViewTitle');
 const quickViewPrice = document.getElementById('quickViewPrice');
 const quickViewRating = document.getElementById('quickViewRating');
 const quickViewWeight = document.getElementById('quickViewWeight');
+const quickViewPackType = document.getElementById('quickViewPackType');
 const quickViewAddToCartBtn = document.querySelector('.quick-view-add-to-cart');
 const quickViewWishlistBtn = document.querySelector('.quick-view-wishlist');
 
@@ -235,47 +236,23 @@ function updateProductCardWishlistButton(productId, isLiked) {
 
 // Simple function to toggle product stock status
 function toggleProductStock(productId, isOutOfStock) {
-    const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
-    if (productCard) {
-        productCard.setAttribute('data-out-of-stock', isOutOfStock.toString());
-        
-        const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
-        if (isOutOfStock) {
-            addToCartBtn.textContent = 'Out of Stock';
-            addToCartBtn.disabled = true;
-        } else {
-            addToCartBtn.textContent = 'Add to Cart';
-            addToCartBtn.disabled = false;
-        }
-    }
+    applyProductStockStatus(productId, !isOutOfStock);
 }
 
 function initializeProductCards() {
     productCards.forEach((card, index) => {
         const productId = parseInt(card.getAttribute('data-id'));
-        const isOutOfStock = card.getAttribute('data-out-of-stock') === 'true';
-        
         const addToCartBtn = card.querySelector('.add-to-cart-btn');
-        
-        // Only add click event if product is in stock
-        if (!isOutOfStock) {
-            addToCartBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                addToCartBtn.classList.add('adding');
-                
-                addToCart(productId, 1);
-                
-                setTimeout(() => {
-                    addToCartBtn.classList.remove('adding');
-                }, 400);
-            });
-        } else {
-            // Disable the button and change text for out of stock products
-            addToCartBtn.textContent = 'Out of Stock';
-            addToCartBtn.disabled = true;
-        }
+        applyProductStockStatus(productId, card.getAttribute('data-out-of-stock') !== 'true');
+        addToCartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (card.getAttribute('data-out-of-stock') === 'true') return;
+
+            addToCartBtn.classList.add('adding');
+            addToCart(productId, 1);
+            setTimeout(() => addToCartBtn.classList.remove('adding'), 400);
+        });
         
         const wishlistBtn = card.querySelector('.wishlist-btn');
         wishlistBtn.addEventListener('click', (e) => {
@@ -299,9 +276,11 @@ function initializeProductCards() {
                 if (product) {
                     quickViewImage.src = product.image;
                     quickViewImage.alt = product.name;
-                    quickViewTitle.textContent = product.name;
+                    quickViewTitle.textContent = 'Natura AGMARK Honey';
                     quickViewPrice.textContent = `₹${product.price.toFixed(2)}`;
                     quickViewWeight.textContent = product.weight;
+                    quickViewPackType.textContent = product.category === 'premium' ? 'PET Pack' : 'Glass Pack';
+                    renderQuickViewHighlights(product.highlights);
                     
                     // Get rating from the product card
                     const ratingStars = card.querySelector('.rating-stars').innerHTML;
@@ -314,8 +293,9 @@ function initializeProductCards() {
                         <span class="rating-count">${ratingCount}</span>
                     `;
                     
-                    // Update quick view add to cart button based on stock status
-                    if (isOutOfStock) {
+                    quickViewAddToCartBtn.dataset.productId = String(productId);
+                    // Update quick view add to cart button based on the latest stock status.
+                    if (card.getAttribute('data-out-of-stock') === 'true') {
                         quickViewAddToCartBtn.textContent = 'Out of Stock';
                         quickViewAddToCartBtn.classList.add('out-of-stock-btn');
                         quickViewAddToCartBtn.disabled = true;
@@ -409,39 +389,7 @@ function updateFavoritesSidebar() {
 
 // Function to mark product as out of stock
 function setProductOutOfStock(productId, isOutOfStock) {
-    const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
-    if (productCard) {
-        productCard.setAttribute('data-out-of-stock', isOutOfStock.toString());
-        
-        const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
-        if (isOutOfStock) {
-            addToCartBtn.textContent = 'Out of Stock';
-            addToCartBtn.disabled = true;
-            addToCartBtn.style.background = '#ccc';
-            addToCartBtn.style.color = '#666';
-            addToCartBtn.style.cursor = 'not-allowed';
-            addToCartBtn.onclick = null;
-        } else {
-            addToCartBtn.textContent = 'Add to Cart';
-            addToCartBtn.disabled = false;
-            addToCartBtn.style.background = '';
-            addToCartBtn.style.color = '';
-            addToCartBtn.style.cursor = '';
-            
-            // Reattach click event
-            addToCartBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                addToCartBtn.classList.add('adding');
-                addToCart(productId, 1);
-                
-                setTimeout(() => {
-                    addToCartBtn.classList.remove('adding');
-                }, 400);
-            });
-        }
-    }
+    applyProductStockStatus(productId, !isOutOfStock);
 }
 
 // Update the addToLikes function
@@ -485,6 +433,7 @@ window.removeFromLikes = function(productId) {
 // Initialize shop page functionality
 function initShopPage() {
     initializeProductCards();
+    watchProductStockStatus();
 }
 
 // Initialize when DOM is loaded

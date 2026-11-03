@@ -6,9 +6,21 @@
   <meta name="theme-color" content="#faf8f3">
   <meta name="description" content="Learn about work at Hexa Apiarium in Thalassery, Kerala, and find out how to be considered for future opportunities.">
   <title>Careers at Hexa Apiarium | Thalassery, Kerala</title>
+  <link rel="canonical" href="https://www.hexahoney.in/careers.html">
+  <meta property="og:title" content="Careers at Hexa Apiarium | Thalassery, Kerala">
+  <meta property="og:description" content="Learn about work at Hexa Apiarium in Thalassery, Kerala, and find out how to be considered for future opportunities.">
+  <meta property="og:image" content="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png">
+  <meta property="og:url" content="https://www.hexahoney.in/careers.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Natura Honey">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Careers at Hexa Apiarium | Thalassery, Kerala">
+  <meta name="twitter:description" content="Learn about work at Hexa Apiarium in Thalassery, Kerala, and find out how to be considered for future opportunities.">
+  <meta name="twitter:image" content="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://fonts.cdnfonts.com/css/akira-expanded" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -77,6 +89,7 @@
     .career-announcement p {
       display: flex;
       flex-wrap: nowrap;
+      width: 100%;
       align-items: center;
       justify-content: center;
       gap: 0;
@@ -86,6 +99,7 @@
     .career-announcement span {
       max-width: 100%;
       text-wrap: balance;
+      overflow-wrap: anywhere;
     }
 
     .career-nav-overlay {
@@ -145,6 +159,7 @@
       transform: translateX(-105%);
       transition: transform 0.3s cubic-bezier(0.2, 0.75, 0.25, 1);
       visibility: hidden;
+      font-family: "Quicksand", sans-serif;
     }
 
     #careerFavoritesPanel.active {
@@ -158,7 +173,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 18px 22px;
+      padding: 20px 24px;
       background: linear-gradient(120deg, #54291f, #75402d);
       color: #fffaf0;
     }
@@ -175,6 +190,7 @@
 
     #careerFavoritesPanel .likes-header h2 > i {
       color: #ffd88c;
+      font-size: 20px;
     }
 
     #careerFavoritesPanel .likes-heading-copy {
@@ -185,7 +201,7 @@
 
     #careerFavoritesPanel .likes-heading-copy small {
       color: rgba(255, 248, 237, 0.76);
-      font: 500 12px/1.4 "Quicksand", sans-serif;
+      font: 500 clamp(11px, 1.1vw, 12px)/1.4 "Quicksand", sans-serif;
     }
 
     #careerFavoritesPanel .close-likes {
@@ -199,7 +215,13 @@
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
       font-size: 22px;
+      transition: transform 0.2s ease, background 0.2s ease;
       cursor: pointer;
+    }
+
+    #careerFavoritesPanel .close-likes:hover {
+      transform: rotate(90deg);
+      background: rgba(255, 255, 255, 0.18);
     }
 
     #careerFavoritesPanel .likes-content {
@@ -219,6 +241,7 @@
     }
 
     #careerFavoritesPanel .like-item {
+      position: relative;
       display: flex;
       min-width: 0;
       align-items: center;
@@ -228,16 +251,35 @@
       border: 1px solid #eee5d8;
       border-radius: 17px;
       background: #fff;
+      overflow: hidden;
       box-shadow: 0 5px 16px rgba(68, 46, 28, 0.07);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #careerFavoritesPanel .like-item:hover {
+      transform: translateY(-2px);
+      border-color: #e4c995;
+      box-shadow: 0 10px 22px rgba(68, 46, 28, 0.12);
+    }
+
+    #careerFavoritesPanel .like-item::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: linear-gradient(#e9c36d, #bc8840);
+      content: "";
+      pointer-events: none;
     }
 
     #careerFavoritesPanel .like-item img {
-      width: 78px;
-      height: 92px;
-      flex: 0 0 78px;
-      padding: 5px;
+      width: 88px;
+      height: 104px;
+      flex: 0 0 88px;
+      margin: 0;
+      padding: 6px;
       border: 1px solid #f1e9dd;
       border-radius: 12px;
+      background: #fffdf9;
       object-fit: contain;
     }
 
@@ -245,13 +287,16 @@
       display: flex;
       min-width: 0;
       flex: 1;
+      align-self: stretch;
       flex-direction: column;
       align-items: flex-start;
+      justify-content: center;
       gap: 5px;
     }
 
     #careerFavoritesPanel .like-item-heading {
       display: flex;
+      min-width: 0;
       flex-wrap: wrap;
       align-items: center;
       gap: 6px;
@@ -260,27 +305,41 @@
     #careerFavoritesPanel .like-item-title {
       margin: 0;
       color: #3f3028;
-      font: 800 14px/1.3 "Quicksand", sans-serif;
+      font: 800 clamp(13px, 1.2vw, 15px)/1.3 "Quicksand", sans-serif;
     }
 
     #careerFavoritesPanel .like-item-category,
     #careerFavoritesPanel .like-item-weight {
       display: inline-flex;
       width: fit-content;
+      min-height: 24px;
       align-items: center;
-      padding: 4px 8px;
+      padding: 5px 10px;
       border: 1px solid #eee0c8;
       border-radius: 999px;
       background: #fff8eb;
       color: #74502d;
-      font: 700 10px/1 "Quicksand", sans-serif;
+      font: 800 clamp(9px, 0.9vw, 11px)/1 "Quicksand", sans-serif;
+      letter-spacing: 0.025em;
       white-space: nowrap;
+    }
+
+    #careerFavoritesPanel .like-item-category[data-category="crystal"] {
+      border-color: #b8d5c5;
+      background: #e8f4eb;
+      color: #245d3f;
+    }
+
+    #careerFavoritesPanel .like-item-category[data-category="premium"] {
+      border-color: #e4bf72;
+      background: #fff0c9;
+      color: #78420f;
     }
 
     #careerFavoritesPanel .like-item-price {
       margin: 0;
       color: #653629;
-      font: 500 20px/1.1 "Oswald", sans-serif;
+      font: 500 21px/1.1 "Oswald", sans-serif;
     }
 
     #careerFavoritesPanel .like-item-actions {
@@ -292,23 +351,62 @@
     }
 
     #careerFavoritesPanel .like-item-actions button {
+      min-width: 0;
       min-height: 38px;
       border-radius: 11px;
       cursor: pointer;
     }
 
     #careerFavoritesPanel .add-to-cart-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin: 0;
+      padding: 8px 10px;
       border: 1px solid #663426;
       background: linear-gradient(135deg, #75402c, #92552f);
       color: #fffaf0;
       font: 800 12px "Quicksand", sans-serif;
+      box-shadow: 0 4px 10px rgba(95, 53, 31, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    #careerFavoritesPanel .add-to-cart-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, #874a2d, #a46331);
+      box-shadow: 0 7px 14px rgba(95, 53, 31, 0.22);
     }
 
     #careerFavoritesPanel .remove-like {
+      display: grid;
+      place-items: center;
       border: 1px solid #f0d9d5;
       background: #fff7f5;
       color: #a3443e;
       font-size: 15px;
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    #careerFavoritesPanel .remove-like:hover {
+      transform: translateY(-1px);
+      background: #a3443e;
+      color: #fff;
+    }
+
+    #careerFavoritesPanel .add-to-cart-btn:active:not(:disabled),
+    #careerFavoritesPanel .remove-like:active,
+    #careerFavoritesPanel .close-likes:active {
+      transform: scale(0.96);
+    }
+
+    #careerFavoritesPanel .add-to-cart-btn:disabled,
+    #careerFavoritesPanel .add-to-cart-btn.out-of-stock-btn {
+      border-color: #e0d8ce;
+      background: #f1ede7;
+      box-shadow: none;
+      color: #82776a;
+      cursor: not-allowed;
     }
 
     #careerFavoritesPanel .empty-likes {
@@ -400,6 +498,55 @@
         min-height: 76px;
         padding: 14px 18px;
         border-radius: 22px 22px 0 0;
+      }
+
+      #careerFavoritesPanel .likes-content {
+        padding: 14px 12px 18px;
+      }
+
+      #careerFavoritesPanel .like-item {
+        gap: 11px;
+        padding: 11px;
+      }
+
+      #careerFavoritesPanel .like-item img {
+        width: 78px;
+        height: 96px;
+        flex-basis: 78px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      #careerFavoritesPanel .likes-content {
+        padding-right: 9px;
+        padding-left: 9px;
+      }
+
+      #careerFavoritesPanel .like-item {
+        gap: 8px;
+        padding: 9px;
+      }
+
+      #careerFavoritesPanel .like-item img {
+        width: 68px;
+        height: 88px;
+        flex-basis: 68px;
+      }
+
+      #careerFavoritesPanel .like-item-title {
+        font-size: 13px;
+      }
+
+      #careerFavoritesPanel .like-item-actions {
+        grid-template-columns: minmax(0, 1fr) 38px;
+        gap: 6px;
+      }
+
+      #careerFavoritesPanel .add-to-cart-btn {
+        gap: 4px;
+        padding: 6px 4px;
+        font-size: 10px;
+        white-space: nowrap;
       }
     }
 
@@ -813,6 +960,7 @@
       padding: clamp(20px, 3vw, 30px);
       border: 1px solid var(--line);
       background: var(--paper);
+      font-family: var(--sans);
     }
 
     .job-listing-header {
@@ -872,6 +1020,45 @@
       flex: 0 0 auto;
     }
 
+    .job-listing-more {
+      border-top: 1px solid var(--line);
+    }
+
+    .job-listing-more > summary {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--maroon);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .job-listing-more > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .job-listing-more > summary::after {
+      content: "+";
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .job-listing-more[open] > summary::after {
+      content: "-";
+    }
+
+    .job-listing-more > .job-listing-summary {
+      margin-top: 14px;
+    }
+
+    .job-listing-more .job-listing-details {
+      margin-top: 14px;
+    }
+
     .job-listings-status {
       grid-column: 1 / -1;
       margin: 0;
@@ -882,7 +1069,7 @@
     .application-dialog {
       position: fixed;
       inset: 12px;
-      width: min(680px, calc(100% - 24px));
+      width: min(680px, calc(100vw - 24px));
       max-width: none;
       max-height: calc(100vh - 24px);
       max-height: calc(100dvh - 24px);
@@ -982,6 +1169,7 @@
     .form-field textarea {
       display: block;
       width: 100%;
+      min-width: 0;
       min-height: 46px;
       padding: 11px 12px;
       border: 1px solid #dcd3c7;
@@ -1106,7 +1294,7 @@
       }
 
       .hero h1 {
-        font-size: clamp(47px, 13vw, 62px);
+        font-size: clamp(39px, 11vw, 52px);
       }
 
       .hero-intro {
@@ -1152,11 +1340,11 @@
       .openings {
         gap: 22px;
         margin-bottom: 18px;
-        padding: 27px 22px;
+        padding: 24px 18px;
       }
 
       .openings h2 {
-        font-size: 38px;
+        font-size: clamp(31px, 9vw, 38px);
       }
 
       .application-action {
@@ -1229,24 +1417,143 @@
         background: transparent !important;
         font-size: 15px;
       }
+
+      .application-dialog {
+        width: min(680px, calc(100vw - 32px));
+        max-height: calc(100dvh - 32px);
+      }
     }
 
     @media (max-width: 767px) {
+      .career-announcement {
+        min-height: 40px !important;
+        padding: 6px 10px !important;
+      }
+
+      #notificationBar p {
+        gap: 0;
+        font-size: clamp(10px, 2.8vw, 12px) !important;
+        line-height: 1.3;
+      }
+
+      .job-listing {
+        padding: 16px;
+        border-radius: 12px;
+        background: var(--surface);
+        box-shadow: 0 6px 18px rgba(56, 47, 42, 0.06);
+      }
+
+      .job-listing-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .job-listing-header > div {
+        min-width: 0;
+      }
+
+      .job-listing h3 {
+        margin-bottom: 5px;
+        font-size: clamp(20px, 6vw, 24px);
+        line-height: 1.15;
+      }
+
+      .job-listing-meta {
+        font-size: 10px;
+        line-height: 1.55;
+      }
+
+      .job-listing-apply {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+        gap: 10px;
+        padding: 0 13px;
+        font-size: 11px;
+      }
+
+      .job-listing-more {
+        margin-top: 14px;
+        border-top-color: #eee5d8;
+      }
+
+      .job-listing-more > summary {
+        min-height: 44px;
+        font-size: 12px;
+      }
+
+      .job-listing-details {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+
+      .job-listing-more > .job-listing-summary {
+        margin: 14px 0;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .job-listing-details ul {
+        margin-bottom: 0;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      .openings {
+        gap: 20px;
+        padding: 24px 18px;
+      }
+
       .application-dialog {
-        inset: 8px;
-        width: calc(100% - 16px);
-        max-height: calc(100vh - 16px);
-        max-height: calc(100dvh - 16px);
-        border-radius: 7px;
+        display: flex;
+        inset: 0;
+        width: min(480px, calc(100vw - 32px));
+        height: min(76vh, 600px);
+        height: min(76dvh, 600px);
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .application-dialog:not([open]) {
+        display: none;
       }
 
       .dialog-inner {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
         padding: 20px 18px 18px;
       }
 
+      .application-dialog .application-form {
+        min-height: 0;
+        flex: 1 1 auto;
+        align-content: start;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 2px 5px 8px 0;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+      }
+
+      .application-form::-webkit-scrollbar {
+        display: none;
+        width: 0;
+      }
+
       .dialog-header {
+        flex: 0 0 auto;
         gap: 12px;
-        margin-bottom: 18px;
+        margin: -20px -18px 14px;
+        padding: 18px 18px 12px;
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
       }
 
       .dialog-header h2 {
@@ -1257,9 +1564,33 @@
         width: 36px;
         height: 36px;
       }
+
+      .application-form {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .form-field--full,
+      .form-status,
+      .form-privacy {
+        grid-column: 1;
+      }
+
+      .application-form .primary-link {
+        width: 100%;
+        justify-content: center;
+      }
     }
 
     @media (max-width: 380px) {
+      .career-announcement {
+        min-height: 44px !important;
+        padding-inline: 8px !important;
+      }
+
+      #notificationBar p {
+        font-size: 10px !important;
+      }
+
       #navBar .career-nav-icons {
         gap: 0;
       }
@@ -1273,9 +1604,9 @@
 
     @media (max-height: 650px) {
       .application-dialog {
-        inset-block: 6px;
-        max-height: calc(100vh - 12px);
-        max-height: calc(100dvh - 12px);
+        inset: 0;
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
       }
 
       .dialog-inner {
@@ -1305,6 +1636,12 @@
       font-weight: 600 !important;
     }
 
+    @media (max-width: 767px) {
+      #footer-placeholder .footer-column {
+        font-family: "Quicksand", sans-serif !important;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -1325,7 +1662,7 @@
 </head>
 <body>
   <div class="career-announcement" id="notificationBar" role="region" aria-label="Career announcement">
-    <p><span>Explore meaningful work and future career possibilities with Hexa Apiarium</span></p>
+    <p><i class="fas fa-briefcase" aria-hidden="true"></i><span>Build your career with Hexa Apiarium</span></p>
   </div>
   <nav id="navBar" aria-label="Main navigation">
     <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">
@@ -1485,6 +1822,7 @@
     </div>
   </dialog>
   <script>
+    const careerAnnouncement = document.getElementById("notificationBar");
     const mobileMenuButton = document.getElementById("mobileMenuBtn");
     const careerNav = document.getElementById("navBar");
     const careerNavLinks = document.getElementById("navLinks");
@@ -1496,6 +1834,7 @@
     const careerEmptyFavorites = document.getElementById("careerEmptyFavorites");
     const careerFavoritesCount = document.getElementById("careerFavoritesCount");
     const careerFavoritesStatus = document.getElementById("careerFavoritesStatus");
+    const careerJobDetailsViewport = window.matchMedia("(max-width: 767px)");
     const careerFavoriteProducts = [
       { id: 1, name: "Natura Agmark Honey", price: 420, weight: "1Kg", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725", category: "crystal" },
       { id: 2, name: "Natura Agmark Honey", price: 230, weight: "500g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443", category: "crystal" },
@@ -1505,6 +1844,24 @@
       { id: 6, name: "Natura Agmark Honey", price: 200, weight: "500g", image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598", category: "premium" }
     ];
     let careerFavoriteIds = [];
+
+    const updateCareerScrollHeader = () => {
+      const isScrolled = (window.pageYOffset || document.documentElement.scrollTop) > 5;
+      careerAnnouncement.classList.toggle("hidden", isScrolled);
+      careerNav.classList.toggle("scrolled-up", isScrolled);
+    };
+
+    window.addEventListener("scroll", updateCareerScrollHeader, { passive: true });
+    updateCareerScrollHeader();
+
+    careerJobDetailsViewport.addEventListener("change", (event) => {
+      document.querySelectorAll(".job-listing-more").forEach((details) => {
+        details.open = !event.matches;
+      });
+      document.querySelectorAll("#footer-placeholder .footer-column").forEach((section) => {
+        section.open = !event.matches;
+      });
+    });
 
     const setCareerMenuOpen = (isOpen) => {
       mobileMenuButton.setAttribute("aria-expanded", String(isOpen));
@@ -1552,7 +1909,7 @@
           <div class="like-item-details">
             <div class="like-item-heading">
               <h3 class="like-item-title">${product.name}</h3>
-              <span class="like-item-category">${packaging}</span>
+              <span class="like-item-category" data-category="${product.category}">${packaging}</span>
             </div>
             <span class="like-item-weight">${product.weight}</span>
             <p class="like-item-price">₹${product.price.toFixed(2)}</p>
@@ -1646,6 +2003,9 @@
       })
       .then((footerMarkup) => {
         document.getElementById("footer-placeholder").innerHTML = footerMarkup;
+        document.querySelectorAll("#footer-placeholder .footer-column").forEach((section) => {
+          section.open = !careerJobDetailsViewport.matches;
+        });
       })
       .catch((error) => {
         console.error("Shared footer could not be loaded:", error);
@@ -1782,12 +2142,15 @@
                   data-job-title="${escapeHtml(job.title)}"
                 ><span>Apply for this role</span><span aria-hidden="true">↗</span></button>
               </div>
-              <p class="job-listing-summary">${escapeHtml(job.summary)}</p>
-              <div class="job-listing-details">
-                ${detailList("What you’ll do", job.responsibilities || [])}
-                ${detailList("What we’re looking for", job.requirements || [])}
-                ${detailList("What we offer", job.benefits || [])}
-              </div>
+              <details class="job-listing-more" ${careerJobDetailsViewport.matches ? "" : "open"}>
+                <summary>View role details</summary>
+                <p class="job-listing-summary">${escapeHtml(job.summary)}</p>
+                <div class="job-listing-details">
+                  ${detailList("What you’ll do", job.responsibilities || [])}
+                  ${detailList("What we’re looking for", job.requirements || [])}
+                  ${detailList("What we offer", job.benefits || [])}
+                </div>
+              </details>
             </article>
           `;
         }).join("");

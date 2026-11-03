@@ -2305,7 +2305,12 @@ body {
     <span class="menu-count" id="countOrders"></span>
 </div>
 
-<div class="menu-item" id="menuCustomers">
+                <div class="menu-item" id="menuProductStock">
+                    <div class="menu-icon"><i class="fas fa-boxes-stacked"></i></div>
+                    <div class="menu-text">Product Stock</div>
+                </div>
+
+                <div class="menu-item" id="menuCustomers">
     <div class="menu-icon"><i class="fas fa-users"></i></div>
     <div class="menu-text">Customers</div>
     <span class="menu-count" id="countCustomers"></span>
@@ -4089,6 +4094,10 @@ function highlightOrderInTable(orderId) {
         loadHTML("career-jobs.html");
     }
 
+    function loadProductStockPage() {
+        loadHTML("product-stock.html");
+    }
+
     function loadPromoPage()    { loadHTML("promo-codes.html"); }
     function loadOrdersPage()   { loadHTML("orders.html"); }
     function loadCustomersPage(){ loadHTML("customers.html"); }
@@ -4253,6 +4262,9 @@ function closeMobileMenu() {
                     localStorage.setItem(LAST_OPEN.orders, Date.now());
                     updateBadge(document.getElementById("countOrders"), 0);
                     loadOrdersPage();
+                    break;
+                case 'Product Stock':
+                    loadProductStockPage();
                     break;
                 case 'Customers':
                     localStorage.setItem(LAST_OPEN.customers, Date.now());

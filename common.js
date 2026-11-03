@@ -90,23 +90,38 @@ window.activePromoCodes = {};
 const products = [
     { 
         id: 1, 
-        name: "Natura Agmark Honey", 
+        name: "Natura AGMARK Honey - 1 kg Glass Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-jar", text: "Presented in a glass jar" }
+        ],
         price: 420.00, 
         weight: "1Kg",
-        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725",
-        category: "crystal"
-    },
-    { 
-        id: 2, 
-        name: "Natura Agmark Honey", 
-        price: 230.00, 
-        weight: "500g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443",
         category: "crystal"
     },
     { 
+        id: 2, 
+        name: "Natura AGMARK Honey - 500 g Glass Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-jar", text: "Presented in a glass jar" }
+        ],
+        price: 230.00, 
+        weight: "500g",
+        image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725",
+        category: "crystal"
+    },
+    { 
         id: 3, 
-        name: "Natura Agmark Honey", 
+        name: "Natura AGMARK Honey - 100 g Glass Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-jar", text: "Presented in a glass jar" }
+        ],
         price: 65.00, 
         weight: "100g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748",
@@ -114,7 +129,12 @@ const products = [
     },
     { 
         id: 4, 
-        name: "Natura Agmark Honey", 
+        name: "Natura AGMARK Honey - 50 g Glass Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-jar", text: "Presented in a glass jar" }
+        ],
         price: 40.00, 
         weight: "50g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792",
@@ -122,7 +142,12 @@ const products = [
     },
     { 
         id: 5, 
-        name: "Natura Agmark Honey", 
+        name: "Natura AGMARK Honey - 1 kg PET Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-bottle-water", text: "Presented in a PET container" }
+        ],
         price: 370.00, 
         weight: "1Kg",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459",
@@ -130,13 +155,108 @@ const products = [
     },
     { 
         id: 6, 
-        name: "Natura Agmark Honey", 
+        name: "Natura AGMARK Honey - 500 g PET Pack",
+        highlights: [
+            { icon: "fa-certificate", text: "AGMARK-marked honey" },
+            { icon: "fa-droplet", text: "Naturally sweet, golden honey" },
+            { icon: "fa-bottle-water", text: "Presented in a PET container" }
+        ],
         price: 200.00, 
         weight: "500g",
         image: "https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598",
         category: "premium"
     }
 ];
+
+function applyProductStockStatus(productId, inStock) {
+    const cards = document.querySelectorAll(`.product-card[data-id="${productId}"]`);
+    cards.forEach((card) => {
+        card.setAttribute('data-out-of-stock', String(!inStock));
+        const button = card.querySelector('.add-to-cart-btn');
+        if (button) {
+            button.disabled = !inStock;
+            button.classList.toggle('out-of-stock-btn', !inStock);
+            button.innerHTML = inStock
+                ? '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>'
+                : '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
+            button.setAttribute('aria-label', inStock ? 'Add product to cart' : 'This product is out of stock');
+        }
+    });
+
+    document.querySelectorAll(`.like-item .add-to-cart-btn[data-id="${productId}"]`).forEach((button) => {
+        button.disabled = !inStock;
+        button.classList.toggle('out-of-stock-btn', !inStock);
+        button.innerHTML = inStock
+            ? '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>'
+            : '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
+    });
+
+    const quickViewButton = document.querySelector('.quick-view-add-to-cart');
+    if (quickViewButton && Number(quickViewButton.dataset.productId) === Number(productId)) {
+        quickViewButton.disabled = !inStock;
+        quickViewButton.classList.toggle('out-of-stock-btn', !inStock);
+        quickViewButton.textContent = inStock ? 'Add to Cart' : 'Out of Stock';
+    }
+}
+
+function watchProductStockStatus() {
+    if (typeof db === 'undefined' || typeof db.collection !== 'function') return;
+
+    products.forEach(({ id }) => {
+        db.collection('products').doc(String(id)).onSnapshot((snapshot) => {
+            const data = snapshot.data();
+            const inStock = data && typeof data.inStock === 'boolean' ? data.inStock : true;
+            applyProductStockStatus(id, inStock);
+        }, (error) => {
+            console.error(`Unable to load stock status for product ${id}:`, error);
+        });
+    });
+}
+
+window.applyProductStockStatus = applyProductStockStatus;
+
+function renderQuickViewHighlights(highlights) {
+    const renderItems = (items) => items.map(({ icon, text }) => {
+        const item = document.createElement('li');
+        const iconElement = document.createElement('i');
+        iconElement.className = `quick-view-highlight-icon fas ${icon}`;
+        iconElement.setAttribute('aria-hidden', 'true');
+        const textElement = document.createElement('span');
+        textElement.textContent = text;
+        item.append(iconElement, textElement);
+        return item;
+    });
+
+    document.getElementById('quickViewDescription')
+        .replaceChildren(...renderItems(highlights));
+    document.getElementById('quickViewWaysToEnjoy')
+        .replaceChildren(...renderItems([
+            { icon: "fa-mug-hot", text: "Stir into tea or warm drinks" },
+            { icon: "fa-bread-slice", text: "Drizzle over toast or breakfast" },
+            { icon: "fa-utensils", text: "Add to everyday recipes" }
+        ]));
+}
+
+document.querySelectorAll('[data-quick-view-tab]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-quick-view-tab]').forEach((item) => {
+            const isSelected = item === tab;
+            item.setAttribute('aria-selected', String(isSelected));
+            item.tabIndex = isSelected ? 0 : -1;
+            document.getElementById(item.getAttribute('aria-controls')).hidden = !isSelected;
+        });
+    });
+
+    tab.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        const tabs = Array.from(document.querySelectorAll('[data-quick-view-tab]'));
+        const currentIndex = tabs.indexOf(tab);
+        const offset = event.key === 'ArrowRight' ? 1 : -1;
+        tabs[(currentIndex + offset + tabs.length) % tabs.length].click();
+        tabs[(currentIndex + offset + tabs.length) % tabs.length].focus();
+    });
+});
 
 // DOM Elements
 const notificationBar = document.getElementById('notificationBar');

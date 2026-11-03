@@ -21,6 +21,7 @@ const quickViewTitle = document.getElementById('quickViewTitle');
 const quickViewPrice = document.getElementById('quickViewPrice');
 const quickViewRating = document.getElementById('quickViewRating');
 const quickViewWeight = document.getElementById('quickViewWeight');
+const quickViewPackType = document.getElementById('quickViewPackType');
 const quickViewAddToCartBtn = document.querySelector('.quick-view-add-to-cart');
 const quickViewWishlistBtn = document.querySelector('.quick-view-wishlist');
 
@@ -164,34 +165,17 @@ function initializeProductCards() {
         
         card.setAttribute('data-id', productId);
         
-        // Check if product is out of stock
-        const isOutOfStock = card.getAttribute('data-out-of-stock') === 'true';
-        
         const addToCartBtn = card.querySelector('.add-to-cart-btn');
-        
-        if (!isOutOfStock) {
-            addToCartBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                addToCartBtn.classList.add('adding');
-                
-                // Add to cart (this will now auto-open the cart sidebar)
-                addToCart(productId, 1);
-                
-                setTimeout(() => {
-                    addToCartBtn.classList.remove('adding');
-                }, 400);
-            });
-        } else {
-            // Disable the button and change text for out of stock products
-            addToCartBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
-            addToCartBtn.setAttribute('aria-label', 'This product is out of stock');
-            addToCartBtn.disabled = true;
-            addToCartBtn.style.background = '#ccc';
-            addToCartBtn.style.color = '#666';
-            addToCartBtn.style.cursor = 'not-allowed';
-        }
+        applyProductStockStatus(productId, card.getAttribute('data-out-of-stock') !== 'true');
+        addToCartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (card.getAttribute('data-out-of-stock') === 'true') return;
+
+            addToCartBtn.classList.add('adding');
+            addToCart(productId, 1);
+            setTimeout(() => addToCartBtn.classList.remove('adding'), 400);
+        });
         
         const wishlistBtn = card.querySelector('.wishlist-btn');
         wishlistBtn.addEventListener('click', (e) => {
@@ -216,9 +200,11 @@ function initializeProductCards() {
                 if (product) {
                     quickViewImage.src = product.image;
                     quickViewImage.alt = product.name;
-                    quickViewTitle.textContent = product.name;
+                    quickViewTitle.textContent = 'Natura AGMARK Honey';
                     quickViewPrice.textContent = `₹${product.price.toFixed(2)}`;
                     quickViewWeight.textContent = product.weight;
+                    quickViewPackType.textContent = product.category === 'premium' ? 'PET Pack' : 'Glass Pack';
+                    renderQuickViewHighlights(product.highlights);
                     
                     // Get rating from the product card
                     const ratingStars = card.querySelector('.rating-stars').innerHTML;
@@ -231,8 +217,9 @@ function initializeProductCards() {
                         <span class="rating-count">${ratingCount}</span>
                     `;
                     
-                    // Update quick view add to cart button based on stock status
-                    if (isOutOfStock) {
+                    quickViewAddToCartBtn.dataset.productId = String(productId);
+                    // Update quick view add to cart button based on the latest stock status.
+                    if (card.getAttribute('data-out-of-stock') === 'true') {
                         quickViewAddToCartBtn.textContent = 'Out of Stock';
                         quickViewAddToCartBtn.classList.add('out-of-stock-btn');
                         quickViewAddToCartBtn.disabled = true;
@@ -265,76 +252,14 @@ function initializeProductCards() {
 
 // Function to mark product as out of stock on index page
 function setProductOutOfStockIndex(productId, isOutOfStock) {
-    const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
-    if (productCard) {
-        productCard.setAttribute('data-out-of-stock', isOutOfStock.toString());
-        
-        const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
-        if (isOutOfStock) {
-            addToCartBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
-            addToCartBtn.setAttribute('aria-label', 'This product is out of stock');
-            addToCartBtn.classList.add('out-of-stock-btn');
-            addToCartBtn.disabled = true;
-            addToCartBtn.style.background = '#ccc';
-            addToCartBtn.style.color = '#666';
-            addToCartBtn.style.cursor = 'not-allowed';
-            addToCartBtn.onclick = null;
-        } else {
-            const product = products.find(item => item.id === productId);
-            addToCartBtn.innerHTML = '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>';
-            addToCartBtn.setAttribute('aria-label', `Add ${product?.name || 'product'} ${product?.weight || ''} to cart`);
-            addToCartBtn.classList.remove('out-of-stock-btn');
-            addToCartBtn.disabled = false;
-            addToCartBtn.style.background = '';
-            addToCartBtn.style.color = '';
-            addToCartBtn.style.cursor = '';
-            
-            // Reattach click event
-            addToCartBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                addToCartBtn.classList.add('adding');
-                addToCart(productId, 1);
-                
-                setTimeout(() => {
-                    addToCartBtn.classList.remove('adding');
-                }, 400);
-            });
-        }
-    }
-    
-    // Also update the likes sidebar if this product is in favorites
+    applyProductStockStatus(productId, !isOutOfStock);
     const likeItemBtn = document.querySelector(`.like-item .add-to-cart-btn[data-id="${productId}"]`);
     if (likeItemBtn) {
-        if (isOutOfStock) {
-            likeItemBtn.innerHTML = '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>';
-            likeItemBtn.setAttribute('aria-label', 'This product is out of stock');
-            likeItemBtn.classList.add('out-of-stock-btn');
-            likeItemBtn.disabled = true;
-            likeItemBtn.style.background = '#ccc';
-            likeItemBtn.style.color = '#666';
-            likeItemBtn.style.cursor = 'not-allowed';
-            
-            // Remove existing click event
-            const newBtn = likeItemBtn.cloneNode(true);
-            likeItemBtn.parentNode.replaceChild(newBtn, likeItemBtn);
-        } else {
-            const product = products.find(item => item.id === productId);
-            likeItemBtn.innerHTML = '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>';
-            likeItemBtn.setAttribute('aria-label', `Add ${product?.name || 'product'} ${product?.weight || ''} to cart`);
-            likeItemBtn.classList.remove('out-of-stock-btn');
-            likeItemBtn.disabled = false;
-            likeItemBtn.style.background = '';
-            likeItemBtn.style.color = '';
-            likeItemBtn.style.cursor = '';
-            
-            // Add click event
-            likeItemBtn.addEventListener('click', (e) => {
-                const productId = parseInt(e.currentTarget.getAttribute('data-id'));
-                addToCart(productId, 1);
-            });
-        }
+        likeItemBtn.disabled = isOutOfStock;
+        likeItemBtn.classList.toggle('out-of-stock-btn', isOutOfStock);
+        likeItemBtn.innerHTML = isOutOfStock
+            ? '<i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span>'
+            : '<i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span>';
     }
 }
 
@@ -827,6 +752,7 @@ window.addToLikes = function(productId) {
 
 function initIndexPage() {
     initializeProductCards();
+    watchProductStockStatus();
     initializeProductCatalog();
     initializeBannerImages();
     loadApprovedReviews();

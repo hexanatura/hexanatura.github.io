@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   
   <!-- ====== SEO META TAGS ====== -->
-  <title>Natura AGMARK Honey - Pure Honey. Pure Goodness - Estd. 1993</title>
-  <meta name="description" content="Shop Natura AGMARK honey from Kerala, India. Explore 50g to 1kg packs from Hexa Apiarium Pvt. Ltd., established in 1993. Order honey online.">
+  <title>Natura AGMARK Honey from Kerala | Hexa Apiarium</title>
+  <meta name="description" content="Explore Natura AGMARK Honey from Hexa Apiarium Pvt. Ltd. in Thalassery, Kerala. Shop 50 g to 1 kg glass and PET packs online.">
   <link rel="canonical" href="https://www.hexahoney.in/">
   
   <!-- Open Graph / Social Media -->
-  <meta property="og:title" content="Natura AGMARK Honey - Pure Honey. Pure Goodness - Estd. 1993">
-  <meta property="og:description" content="Shop Natura AGMARK honey from Kerala, India. Explore 50g to 1kg packs from Hexa Apiarium Pvt. Ltd., established in 1993. Order honey online.">
+  <meta property="og:title" content="Natura AGMARK Honey from Kerala | Hexa Apiarium">
+  <meta property="og:description" content="Explore Natura AGMARK Honey from Hexa Apiarium Pvt. Ltd. in Thalassery, Kerala. Shop 50 g to 1 kg glass and PET packs online.">
   <meta property="og:image" content="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png">
   <meta property="og:url" content="https://www.hexahoney.in/">
   <meta property="og:type" content="website">
@@ -19,8 +19,8 @@
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Natura AGMARK Honey - Pure Honey. Pure Goodness - Estd. 1993">
-  <meta name="twitter:description" content="Shop Natura AGMARK honey from Kerala, India. Explore 50g to 1kg packs from Hexa Apiarium Pvt. Ltd., established in 1993. Order honey online.">
+  <meta name="twitter:title" content="Natura AGMARK Honey from Kerala | Hexa Apiarium">
+  <meta name="twitter:description" content="Explore Natura AGMARK Honey from Hexa Apiarium Pvt. Ltd. in Thalassery, Kerala. Shop 50 g to 1 kg glass and PET packs online.">
   <meta name="twitter:image" content="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png">
   
   <!-- JSON-LD Structured Data -->
@@ -221,6 +221,10 @@
 }
 
 .quick-view-description {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
   font-family: 'Unbounded', sans-serif;
   font-size: 15px; /* Reduced from 16px */
   color: #777;
@@ -229,6 +233,26 @@
   overflow: visible;
   max-height: none;
   flex-grow: 0; /* Don't allow to grow too much */
+}
+
+.quick-view-description li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.quick-view-description li::before {
+  content: "✓";
+  display: inline-flex;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff3cf;
+  color: #7a5424;
+  font: 700 12px/1 Arial, sans-serif;
 }
 
 .quick-view-weight {
@@ -9076,6 +9100,247 @@
         scroll-behavior: auto;
       }
     }
+
+    .quick-view-image img {
+      transform: scale(1.42);
+      transform-origin: center;
+    }
+
+    .quick-view-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 10px;
+    }
+
+    .quick-view-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 9px 14px;
+      border: 1px solid #eadbc7;
+      border-radius: 999px;
+      background: #fff;
+      color: #70594b;
+      font: 600 13px/1.2 'Quicksand', Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .quick-view-tab[aria-selected="true"] {
+      border-color: #633a34;
+      background: #633a34;
+      color: #fff8eb;
+    }
+
+    .quick-view-tab:focus-visible {
+      outline: 3px solid #c9a866;
+      outline-offset: 2px;
+    }
+
+    .quick-view-description {
+      display: grid !important;
+      gap: 7px;
+    }
+
+    .quick-view-description li {
+      min-height: 38px;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 2px;
+      border-bottom: 1px solid #f1ede8;
+      background: transparent;
+      color: #6d655e;
+      font: 500 14px/1.35 'Quicksand', Arial, sans-serif;
+    }
+
+    .quick-view-description li:last-child {
+      border-bottom: 0;
+    }
+
+    .quick-view-description li::before {
+      display: none;
+    }
+
+    .quick-view-highlight-icon {
+      display: inline-grid;
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      place-items: center;
+      border-radius: 50%;
+      background: transparent;
+      color: #8b765d;
+      font-size: 13px;
+    }
+
+    .quick-view-product-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .quick-view-weight {
+      position: relative;
+      display: inline-flex;
+      width: fit-content;
+      min-height: 30px;
+      isolation: isolate;
+      align-items: center;
+      overflow: hidden;
+      padding: 5px 11px;
+      border: 2px solid #6e3b20;
+      border-radius: 10px 10px 10px 3px;
+      background: linear-gradient(135deg, #ffe86b, #ffc52e);
+      color: #4c2818;
+      font: 900 13px/1 'Quicksand', Arial, sans-serif;
+      box-shadow: 0 3px 0 rgba(92, 50, 26, 0.18), 0 4px 10px rgba(51, 34, 20, 0.12);
+    }
+
+    .quick-view-weight::after {
+      position: absolute;
+      z-index: 1;
+      top: -60%;
+      bottom: -60%;
+      left: -55%;
+      width: 42%;
+      border-radius: inherit;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.08) 34%, rgba(255,255,255,.62) 50%, rgba(255,255,255,.08) 66%, transparent 100%);
+      content: "";
+      pointer-events: none;
+      transform: skewX(-18deg);
+      animation: buttonShineSweep 3s ease-in-out infinite;
+    }
+
+    .quick-view-pack-type {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border: 1px solid #e8dfd3;
+      border-radius: 999px;
+      background: #f7f4ef;
+      color: #633a34;
+      font: 700 12px/1.2 'Quicksand', Arial, sans-serif;
+    }
+
+    .quick-view-pack-type i {
+      color: #8b765d;
+      font-size: 11px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .quick-view-weight::after {
+        display: none;
+        animation: none;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .quick-view-modal {
+        padding: 12px !important;
+      }
+
+      .quick-view-content {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        width: min(520px, calc(100vw - 24px)) !important;
+        max-width: none !important;
+        max-height: min(90vh, 720px) !important;
+        max-height: min(90dvh, 720px) !important;
+        margin: 0 !important;
+        transform: none !important;
+        overflow: hidden !important;
+      }
+
+      .quick-view-image {
+        height: clamp(185px, 30dvh, 200px) !important;
+        max-height: none !important;
+        flex: 0 0 auto;
+      }
+
+      .quick-view-image img {
+        width: auto !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        transform: scale(1.5) !important;
+        object-fit: contain;
+      }
+
+      .quick-view-close {
+        height: 38px;
+        padding: 7px 12px !important;
+        font-size: 20px !important;
+      }
+
+      .quick-view-body {
+        gap: 7px !important;
+        padding: 0 12px 12px !important;
+      }
+
+      .quick-view-title {
+        margin-bottom: 3px !important;
+        font-size: 15px !important;
+        line-height: 1.25 !important;
+      }
+
+      .quick-view-price {
+        margin-bottom: 5px !important;
+        font-size: 18px !important;
+      }
+
+      .quick-view-rating {
+        margin-bottom: 5px !important;
+      }
+
+      .quick-view-product-meta {
+        gap: 6px;
+        margin-bottom: 5px;
+      }
+
+      .quick-view-weight {
+        min-height: 27px;
+        padding: 4px 9px;
+        font-size: 11px;
+      }
+
+      .quick-view-pack-type {
+        min-height: 25px;
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+
+      .quick-view-tab {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .quick-view-tabs {
+        margin-bottom: 3px;
+      }
+
+      .quick-view-description li {
+        min-height: 26px;
+        padding: 2px 1px;
+        font-size: 12px;
+      }
+
+      .quick-view-actions {
+        margin-top: 4px !important;
+        margin-bottom: 0 !important;
+      }
+
+      .quick-view-add-to-cart,
+      .quick-view-wishlist {
+        min-height: 42px !important;
+        height: 42px !important;
+      }
+    }
   </style>
   <link rel="stylesheet" href="shared-header.css?v=20261023-responsive-2" />
  </head>
@@ -9138,12 +9403,24 @@
           <h2 class="quick-view-title" id="quickViewTitle"></h2>
           <div class="quick-view-price" id="quickViewPrice"></div>
           <div class="quick-view-rating" id="quickViewRating"></div>
-          <div class="quick-view-weight" id="quickViewWeight"></div>
-          <p class="quick-view-description">
-            Our pure, natural honey is carefully sourced from pesticide-free environments. 
-            This product is 100% pure with no additives or preservatives. Perfect as a natural sweetener, 
-            for skin care, or as a delicious addition to your favorite recipes.
-          </p>
+          <div class="quick-view-product-meta">
+            <div class="quick-view-weight" id="quickViewWeight"></div>
+            <span class="quick-view-pack-type"><i class="fas fa-jar" aria-hidden="true"></i><span id="quickViewPackType"></span></span>
+          </div>
+          <div class="quick-view-tabs" role="tablist" aria-label="Product information">
+            <button class="quick-view-tab" id="quickViewDetailsTab" type="button" role="tab" aria-selected="true" aria-controls="quickViewDetailsPanel" data-quick-view-tab>
+              <i class="fas fa-circle-info" aria-hidden="true"></i> Honey profile
+            </button>
+            <button class="quick-view-tab" id="quickViewWaysTab" type="button" role="tab" aria-selected="false" aria-controls="quickViewWaysPanel" data-quick-view-tab tabindex="-1">
+              <i class="fas fa-utensils" aria-hidden="true"></i> Ways to enjoy
+            </button>
+          </div>
+          <div id="quickViewDetailsPanel" role="tabpanel" aria-labelledby="quickViewDetailsTab">
+            <ul class="quick-view-description" id="quickViewDescription" aria-live="polite"></ul>
+          </div>
+          <div id="quickViewWaysPanel" role="tabpanel" aria-labelledby="quickViewWaysTab" hidden>
+            <ul class="quick-view-description" id="quickViewWaysToEnjoy"></ul>
+          </div>
           <div class="quick-view-actions">
             <button class="quick-view-add-to-cart">Add to Cart</button>
             <button class="quick-view-wishlist">
@@ -9334,9 +9611,9 @@
 
       <div class="product-scroll-container">
         <div class="product-row" id="productRow" style="position: relative; z-index: 2;">
-<div class="product-card" data-category="crystal" data-id="1" data-out-of-stock="true">
+<div class="product-card" data-category="crystal" data-id="1" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443" alt="Natura AGMARK Honey, 1 kg glass pack" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9355,7 +9632,7 @@
       <span class="rating-count">(128)</span>
     </div>
     <div class="product-actions">
-      <button class="add-to-cart-btn" aria-label="Natura Agmark Honey 1Kg is out of stock"><i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span></button>
+      <button class="add-to-cart-btn" aria-label="Add Natura AGMARK Honey 1 kg glass pack to cart"><i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span></button>
       <button class="wishlist-btn" type="button" aria-label="Add Natura Agmark Honey 1Kg to wishlist" aria-pressed="false">
         <i class="far fa-heart"></i>
       </button>
@@ -9363,9 +9640,9 @@
   </div>
 </div>
 
-<div class="product-card" data-category="crystal" data-id="2" data-out-of-stock="true">
+<div class="product-card" data-category="crystal" data-id="2" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725" alt="Natura AGMARK Honey, 500 g glass pack" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9384,7 +9661,7 @@
       <span class="rating-count">(95)</span>
     </div>
     <div class="product-actions">
-      <button class="add-to-cart-btn" aria-label="Natura Agmark Honey 500g is out of stock"><i class="fas fa-ban" aria-hidden="true"></i><span>Out of Stock</span></button>
+      <button class="add-to-cart-btn" aria-label="Add Natura AGMARK Honey 500 g glass pack to cart"><i class="fas fa-cart-plus" aria-hidden="true"></i><span>Add to Cart</span></button>
       <button class="wishlist-btn" type="button" aria-label="Add Natura Agmark Honey 500g to wishlist" aria-pressed="false">
         <i class="far fa-heart"></i>
       </button>
@@ -9394,7 +9671,7 @@
 
 <div class="product-card" data-category="crystal" data-id="3" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748" alt="Natura AGMARK Honey, 100 g glass pack" />
     <div class="product-weight">100g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9423,7 +9700,7 @@
 
 <div class="product-card" data-category="crystal" data-id="4" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792" alt="Natura AGMARK Honey, 50 g glass pack" />
     <div class="product-weight">50g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9452,7 +9729,7 @@
 
 <div class="product-card" data-category="premium" data-id="5" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459" alt="Natura AGMARK Honey, 1 kg PET pack" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9481,7 +9758,7 @@
 
 <div class="product-card" data-category="premium" data-id="6" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598" alt="Natura Agmark Honey" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598" alt="Natura AGMARK Honey, 500 g PET pack" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9606,11 +9883,8 @@
       </p>
       
       <p>
-        Hexa Apiarium Pvt. Ltd. has been dedicated to delivering the pureest honey straight from nature's bounty. 
-        Our Natura Agmark Honey embodies the essence of purity and tradition, harvested from pristine, pesticide-free environments. 
-        Each drop is a testament to our unwavering commitment to quality and authenticity, offering you a rich, golden elixir that's as natural as it gets. 
-        Savor the genuine taste of Natura Agmark Honey and experience the sweetness of nature perfected over decades.
-      </p>
+          Rooted in Kerala, our story began with beekeeping in 1989. Hexa Apiarium Pvt. Ltd. was incorporated in 1993, and the Natura name has been part of our work since those early days. From Thalassery, we continue to share Natura Honey with customers across Kerala and beyond.
+        </p>
 
       <a class="our-team-read-more" href="about.html">Read More <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
       
@@ -9914,7 +10188,7 @@
 
 
 <script src="common.js?v=20261023-favorites"></script>
-<script src="index.js"></script>
+<script src="index.js?v=20261103-quickview-meta"></script>
 
   </body>
 </html>
