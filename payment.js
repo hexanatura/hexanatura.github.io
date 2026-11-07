@@ -371,9 +371,10 @@ function loadPromoCodesFromFirebase() {
                     const notExpired = !promoData.validUntil || new Date(promoData.validUntil) >= now;
                     
                     if (isActive && notExpired) {
+                        const promoCode = String(promoData.code || promoId).trim().toUpperCase();
                         // Store ALL active promo codes regardless of showOnCheckout setting
-                        promoCodes[promoId] = {
-                            code: promoId,
+                        promoCodes[promoCode] = {
+                            code: promoCode,
                             id: promoId,
                             type: promoData.type || 'fixed',
                             value: Number(promoData.value) || 0,
@@ -389,7 +390,7 @@ function loadPromoCodesFromFirebase() {
                             showOnCheckout: promoData.showOnCheckout !== false // Store this setting
                         };
                         
-                        console.log('Loaded promo code:', promoId, promoCodes[promoId]);
+                        console.log('Loaded promo code:', promoCode, promoCodes[promoCode]);
                     }
                 });
                 
@@ -520,23 +521,30 @@ function showPromoSuccessWithRemove(promoDetails, promoCode) {
 
 // Calculate and apply discount based on promo type
 function calculatePromoDiscount(promoDetails) {
-    let discountValue = 0;
     const promoType = promoDetails.type;
-    const total = Number(window.cartSubtotal) || 0;
+    const subtotal = Number(window.cartSubtotal) || 0;
+    const shippingCost = promoType === 'shipping' ? 0 : (Number(window.shippingCost) || 0);
+    const total = Math.max(0, Number(window.originalTotal) || subtotal + shippingCost);
+    const totalCents = Math.round(total * 100);
+    let discountCents = 0;
     
     if (promoType === 'percentage') {
-        discountValue = Math.round(total * (promoDetails.value / 100));
-        if (typeof promoDetails.maxDiscount === 'number' && promoDetails.maxDiscount > 0 && 
-            discountValue > promoDetails.maxDiscount) {
-            discountValue = promoDetails.maxDiscount;
+        const percentage = Number(promoDetails.value);
+        if (Number.isFinite(percentage) && percentage > 0) {
+            discountCents = Math.round(totalCents * (percentage / 100));
+        }
+        if (typeof promoDetails.maxDiscount === 'number' && promoDetails.maxDiscount > 0 &&
+            discountCents > Math.round(promoDetails.maxDiscount * 100)) {
+            discountCents = Math.round(promoDetails.maxDiscount * 100);
         }
     } else if (promoType === 'fixed') {
-        discountValue = Math.min(promoDetails.value, total);
-    } else if (promoType === 'shipping') {
-        discountValue = 0;
+        const fixedValue = Number(promoDetails.value);
+        if (Number.isFinite(fixedValue) && fixedValue > 0) {
+            discountCents = Math.min(Math.round(fixedValue * 100), totalCents);
+        }
     }
 
-    return discountValue;
+    return discountCents / 100;
 }
 
 function applyPromoDiscount(promoDetails, promoCode) {
@@ -559,7 +567,7 @@ function applyPromoDiscount(promoDetails, promoCode) {
     
     // Update usage count in Firebase (don't wait for it)
     if (typeof db !== 'undefined') {
-        db.collection('promoCodes').doc(promoCode).update({
+        db.collection('promoCodes').doc(promoDetails.id || promoCode).update({
             usedCount: firebase.firestore.FieldValue.increment(1)
         }).catch(err => console.error('Failed to update usage count:', err));
     }
