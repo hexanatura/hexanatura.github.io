@@ -299,6 +299,8 @@
 
 .action-btn .fa-eye { color: var(--primary); }
 .action-btn .fa-edit { color: var(--success); }
+.action-btn .fa-trash { color: var(--danger); }
+.action-btn.delete-btn:hover { background: rgba(220, 38, 38, 0.1); }
 
 /* Fixed: Action buttons container */
 .actions-container {
@@ -1169,7 +1171,10 @@
                 <button class="action-btn edit-btn" data-id="${o.id}" data-user-id="${o.userId || ''}" data-source="${o._source || 'main'}" title="Edit Status">
                   <i class="fas fa-edit"></i>
                 </button>
-              </div>
+                  <button class="action-btn delete-btn" data-id="${esc(o.id)}" data-user-id="${esc(o.userId || '')}" data-source="${esc(o._source || 'main')}" title="Delete Order" aria-label="Delete order ${esc(o.orderId || sid(o.id))}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
             </td>
           </tr>
         `;
@@ -1246,6 +1251,9 @@
               <button class="btn-primary edit-btn-mobile" data-id="${o.id}" data-user-id="${o.userId || ''}" data-source="${o._source || 'main'}" style="font-size:0.85rem;padding:8px 12px;">
                 <i class="fas fa-edit" style="margin-right:6px"></i>Edit
               </button>
+              <button class="btn-ghost delete-btn-mobile" data-id="${esc(o.id)}" data-user-id="${esc(o.userId || '')}" data-source="${esc(o._source || 'main')}" style="font-size:0.85rem;padding:8px 12px;color:var(--danger);border-color:rgba(220,38,38,.35);">
+                <i class="fas fa-trash" style="margin-right:6px"></i>Delete
+              </button>
             </div>
           </div>
         `;
@@ -1283,6 +1291,14 @@
       };
     });
 
+    document.querySelectorAll(".delete-btn, .delete-btn-mobile").forEach((button) => {
+      button.onclick = (e) => {
+        e.stopPropagation();
+        const dataset = e.currentTarget.dataset;
+        deleteOrder(dataset.id, dataset.userId, dataset.source);
+      };
+    });
+
     // Bind mobile view buttons
     document.querySelectorAll(".view-btn-mobile").forEach((b) => {
       b.onclick = (e) => {
@@ -1305,12 +1321,85 @@
       card.addEventListener('click', function(e) {
         if (!e.target.closest('.btn-ghost') && 
             !e.target.closest('.btn-primary') && 
+            !e.target.closest('.delete-btn-mobile') &&
             !e.target.closest('.status-pill')) {
           const dataset = this.dataset;
           open(dataset.id, dataset.userId, dataset.source);
         }
       });
     });
+  }
+
+  async function deleteOrder(id, userId = "", source = "main") {
+    const order = orders.find(item => item.id === id && (item.userId || "") === userId);
+    if (!order) {
+      toast("Order not found in the current list", "error");
+      return;
+    }
+
+    const orderNumber = order.orderId || sid(order.id);
+    const customerName = [
+      order.shippingAddress?.firstName,
+      order.shippingAddress?.lastName
+    ].filter(Boolean).join(" ") || order.email || "this customer";
+    if (!window.confirm(`Permanently delete order ${orderNumber} for ${customerName}? This removes the order from Firebase and cannot be undone.`)) {
+      return;
+    }
+
+    const deleteButtons = [...document.querySelectorAll(".delete-btn, .delete-btn-mobile")]
+      .filter(button => button.dataset.id === id && button.dataset.userId === userId);
+    deleteButtons.forEach(button => {
+      button.disabled = true;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    });
+
+    try {
+      const rootRef = db.collection("orders").doc(id);
+      const userRef = userId
+        ? db.collection("users").doc(userId).collection("orders").doc(id)
+        : null;
+      const [rootSnapshot, userSnapshot] = await Promise.all([
+        rootRef.get(),
+        userRef ? userRef.get() : Promise.resolve(null)
+      ]);
+
+      const batch = db.batch();
+      let deleteCount = 0;
+      if (rootSnapshot.exists) {
+        const rootData = rootSnapshot.data();
+        const sameUser = Boolean(userId && rootData.userId === userId);
+        const sameOrderNumber = Boolean(
+          order.orderId && rootData.orderId && rootData.orderId === order.orderId
+        );
+        if (source === "main" || sameUser || sameOrderNumber) {
+          batch.delete(rootRef);
+          deleteCount++;
+        }
+      }
+
+      if (userSnapshot?.exists) {
+        batch.delete(userRef);
+        deleteCount++;
+      }
+
+      if (deleteCount === 0) {
+        throw new Error("No matching Firebase order record was found to delete.");
+      }
+
+      await batch.commit();
+      orders = orders.filter(item => !(item.id === id && (item.userId || "") === userId));
+      apply();
+      toast(`Order ${orderNumber} deleted from Firebase`);
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast(`Delete failed: ${error.message || "Unable to delete order"}`, "error");
+      deleteButtons.forEach(button => {
+        button.disabled = false;
+        button.innerHTML = button.classList.contains("delete-btn-mobile")
+          ? '<i class="fas fa-trash" style="margin-right:6px"></i>Delete'
+          : '<i class="fas fa-trash"></i>';
+      });
+    }
   }
 
   async function open(id, userId = null, source = 'main') {
