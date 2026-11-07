@@ -172,7 +172,8 @@ service cloud.firestore {
 
     // Settings
     match /settings/{settingId} {
-      allow read, write: if isAdmin();
+      allow read: if settingId == 'storefront' || isAdmin();
+      allow write: if isAdmin();
     }
   }
 }

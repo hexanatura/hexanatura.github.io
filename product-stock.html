@@ -30,6 +30,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      flex-wrap: wrap;
       padding: 16px;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
@@ -37,6 +38,78 @@
     }
     .product-stock-name {
       font-weight: 600;
+      flex: 1 1 260px;
+    }
+    .product-stock-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .product-stock-price {
+      width: 130px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+    }
+    .product-stock-save,
+    .storefront-settings-save {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: #16a34a;
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .product-stock-save:disabled,
+    .storefront-settings-save:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+    .storefront-settings {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+      padding: 18px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .storefront-settings label {
+      display: grid;
+      gap: 7px;
+      color: #334155;
+      font-weight: 600;
+    }
+    .storefront-settings input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+    }
+    .storefront-settings .storefront-settings-auto {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      gap: 10px;
+    }
+    .storefront-settings-auto input {
+      width: 18px;
+      height: 18px;
+      accent-color: #16a34a;
+    }
+    .storefront-settings-save {
+      justify-self: start;
+      grid-column: 1 / -1;
+    }
+    .product-stock-section-title {
+      margin: 24px 0 10px;
+      font: 700 20px/1.3 Outfit, Inter, sans-serif;
     }
     .product-stock-select {
       min-width: 150px;
@@ -61,39 +134,114 @@
       .product-stock-select {
         width: 100%;
       }
+      .product-stock-controls {
+        width: 100%;
+      }
+      .product-stock-price {
+        flex: 1;
+        width: auto;
+      }
+      .storefront-settings {
+        grid-template-columns: 1fr;
+      }
+      .storefront-settings .storefront-settings-auto,
+      .storefront-settings-save {
+        grid-column: auto;
+      }
     }
   </style>
-  <h1 id="product-stock-title">Product stock</h1>
-  <p>Choose whether each pack can currently be added to cart. Changes are saved for the storefront.</p>
+  <h1 id="product-stock-title">Product &amp; delivery settings</h1>
+  <p>Update product prices, stock, delivery charges, and automatic free-shipping rules for the storefront and checkout.</p>
   <div class="product-stock-status" id="productStockStatus" role="status" aria-live="polite">Loading product stock…</div>
+  <h2 class="product-stock-section-title">Delivery and free shipping</h2>
+  <form class="storefront-settings" id="storefrontSettingsForm">
+    <label>
+      Free-shipping threshold (₹)
+      <input id="freeShippingThreshold" type="number" min="0" step="1" required>
+    </label>
+    <label>
+      Delivery fee (₹)
+      <input id="deliveryFee" type="number" min="0" step="0.01" required>
+    </label>
+    <label class="storefront-settings-auto">
+      <input id="autoApplyFreeShipping" type="checkbox">
+      Automatically apply free shipping when the cart reaches the threshold
+    </label>
+    <button class="storefront-settings-save" id="saveStorefrontSettings" type="submit">Save delivery settings</button>
+  </form>
+  <h2 class="product-stock-section-title">Product price and stock</h2>
   <div class="product-stock-list" id="productStockList"></div>
 </section>
 <script>
 (() => {
   const products = [
-    { id: 1, name: "Natura AGMARK Honey · 1 kg Glass Pack" },
-    { id: 2, name: "Natura AGMARK Honey · 500 g Glass Pack" },
-    { id: 3, name: "Natura AGMARK Honey · 100 g Glass Pack" },
-    { id: 4, name: "Natura AGMARK Honey · 50 g Glass Pack" },
-    { id: 5, name: "Natura AGMARK Honey · 1 kg PET Pack" },
-    { id: 6, name: "Natura AGMARK Honey · 500 g PET Pack" }
+    { id: 1, name: "Natura AGMARK Honey · 1 kg Glass Pack", price: 420 },
+    { id: 2, name: "Natura AGMARK Honey · 500 g Glass Pack", price: 230 },
+    { id: 3, name: "Natura AGMARK Honey · 100 g Glass Pack", price: 65 },
+    { id: 4, name: "Natura AGMARK Honey · 50 g Glass Pack", price: 40 },
+    { id: 5, name: "Natura AGMARK Honey · 1 kg PET Pack", price: 370 },
+    { id: 6, name: "Natura AGMARK Honey · 500 g PET Pack", price: 200 }
   ];
   const db = firebase.firestore();
   const list = document.getElementById("productStockList");
   const status = document.getElementById("productStockStatus");
+  const settingsForm = document.getElementById("storefrontSettingsForm");
+  const thresholdInput = document.getElementById("freeShippingThreshold");
+  const deliveryFeeInput = document.getElementById("deliveryFee");
+  const autoFreeShippingInput = document.getElementById("autoApplyFreeShipping");
+  const saveSettingsButton = document.getElementById("saveStorefrontSettings");
 
-  function renderProduct(product, inStock) {
-    const row = document.createElement("label");
+  function renderProduct(product, data = {}) {
+    const row = document.createElement("div");
     row.className = "product-stock-row";
     const name = document.createElement("span");
     name.className = "product-stock-name";
     name.textContent = product.name;
+    const controls = document.createElement("div");
+    controls.className = "product-stock-controls";
+    const price = document.createElement("input");
+    price.className = "product-stock-price";
+    price.type = "number";
+    price.min = "0";
+    price.step = "0.01";
+    price.required = true;
+    price.value = String(typeof data.price === "number" ? data.price : product.price);
+    price.setAttribute("aria-label", `Price for ${product.name}`);
+    const savePrice = document.createElement("button");
+    savePrice.className = "product-stock-save";
+    savePrice.type = "button";
+    savePrice.textContent = "Save price";
     const select = document.createElement("select");
     select.className = "product-stock-select";
     select.setAttribute("aria-label", `Stock status for ${product.name}`);
     select.innerHTML = '<option value="true">In stock</option><option value="false">Out of stock</option>';
+    const inStock = typeof data.inStock === "boolean" ? data.inStock : true;
     select.value = String(inStock);
     let savedInStock = inStock;
+    let savedPrice = Number(price.value);
+    savePrice.addEventListener("click", async () => {
+      const nextPrice = Number(price.value);
+      if (!Number.isFinite(nextPrice) || nextPrice < 0) {
+        status.textContent = `Enter a valid non-negative price for ${product.name}.`;
+        return;
+      }
+      savePrice.disabled = true;
+      status.textContent = `Saving price for ${product.name}…`;
+      try {
+        await db.collection("products").doc(String(product.id)).set({
+          price: nextPrice,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        savedPrice = nextPrice;
+        status.textContent = `${product.name} price saved as ₹${nextPrice.toFixed(2)}.`;
+      } catch (error) {
+        console.error(`Unable to update price for product ${product.id}:`, error);
+        price.value = String(savedPrice);
+        status.textContent = `Could not save the price for ${product.name}. Check your connection and admin access, then try again.`;
+      } finally {
+        savePrice.disabled = false;
+      }
+    });
     select.addEventListener("change", async () => {
       const nextInStock = select.value === "true";
       select.disabled = true;
@@ -113,7 +261,8 @@
         select.disabled = false;
       }
     });
-    row.append(name, select);
+    controls.append(price, savePrice, select);
+    row.append(name, controls);
     list.appendChild(row);
   }
 
@@ -124,16 +273,56 @@
       ));
       snapshots.forEach((snapshot, index) => {
         const data = snapshot.data();
-        const inStock = data && typeof data.inStock === "boolean" ? data.inStock : true;
-        renderProduct(products[index], inStock);
+        renderProduct(products[index], data || {});
       });
-      status.textContent = "All products are in stock unless their status is changed here.";
+      status.textContent = "Product prices and stock are loaded. Save each price or stock change.";
     } catch (error) {
       console.error("Unable to load product stock:", error);
       status.textContent = "Could not load product stock. Check your connection and admin access, then reload this section.";
     }
   }
 
+  async function loadStorefrontSettings() {
+    try {
+      const snapshot = await db.collection("settings").doc("storefront").get();
+      const settings = snapshot.exists ? snapshot.data() : {};
+      thresholdInput.value = String(typeof settings.freeShippingThreshold === "number" ? settings.freeShippingThreshold : 299);
+      deliveryFeeInput.value = String(typeof settings.deliveryFee === "number" ? settings.deliveryFee : 59);
+      autoFreeShippingInput.checked = settings.autoApplyFreeShipping !== false;
+    } catch (error) {
+      console.error("Unable to load delivery settings:", error);
+      status.textContent = "Could not load delivery settings. Check your connection and admin access.";
+    }
+  }
+
+  settingsForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const threshold = Number(thresholdInput.value);
+    const fee = Number(deliveryFeeInput.value);
+    if (!Number.isFinite(threshold) || threshold < 0 || !Number.isFinite(fee) || fee < 0) {
+      status.textContent = "Enter valid non-negative values for threshold and delivery fee.";
+      return;
+    }
+
+    saveSettingsButton.disabled = true;
+    status.textContent = "Saving delivery settings…";
+    try {
+      await db.collection("settings").doc("storefront").set({
+        freeShippingThreshold: threshold,
+        deliveryFee: fee,
+        autoApplyFreeShipping: autoFreeShippingInput.checked,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      status.textContent = "Delivery and free-shipping settings saved.";
+    } catch (error) {
+      console.error("Unable to save delivery settings:", error);
+      status.textContent = "Could not save delivery settings. Check your connection and admin access, then try again.";
+    } finally {
+      saveSettingsButton.disabled = false;
+    }
+  });
+
   loadProductStock();
+  loadStorefrontSettings();
 })();
 </script>

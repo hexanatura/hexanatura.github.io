@@ -168,6 +168,101 @@ const products = [
     }
 ];
 
+window.storefrontSettings = {
+    freeShippingThreshold: 299,
+    deliveryFee: 59,
+    autoApplyFreeShipping: true
+};
+
+function applyProductPrice(productId, price) {
+    const product = products.find(item => item.id === Number(productId));
+    if (!product || !Number.isFinite(price) || price < 0) return;
+
+    product.price = price;
+    document.querySelectorAll(`.product-card[data-id="${productId}"]`).forEach(card => {
+        card.dataset.price = String(price);
+        const priceElement = card.querySelector('.product-price');
+        if (priceElement) priceElement.textContent = `₹${price.toFixed(2)}`;
+    });
+
+    const quickViewButton = document.querySelector('.quick-view-add-to-cart');
+    if (quickViewButton && Number(quickViewButton.dataset.productId) === Number(productId)) {
+        const quickViewPrice = document.getElementById('quickViewPrice');
+        if (quickViewPrice) quickViewPrice.textContent = `₹${price.toFixed(2)}`;
+    }
+
+    document.querySelectorAll(`.like-item .add-to-cart-btn[data-id="${productId}"]`).forEach(button => {
+        const priceElement = button.closest('.like-item')?.querySelector('.like-item-price');
+        if (priceElement) priceElement.textContent = `₹${price.toFixed(2)}`;
+    });
+
+    if (typeof updateCartUI === 'function') updateCartUI();
+    window.dispatchEvent(new CustomEvent('storefrontProductPriceUpdated', {
+        detail: { productId: Number(productId), price }
+    }));
+}
+
+function updateStorefrontSettings(settings) {
+    const threshold = Number(settings.freeShippingThreshold);
+    const deliveryFee = Number(settings.deliveryFee);
+    window.storefrontSettings = {
+        freeShippingThreshold: Number.isFinite(threshold) && threshold >= 0 ? threshold : 299,
+        deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 59,
+        autoApplyFreeShipping: settings.autoApplyFreeShipping !== false
+    };
+
+    const announcement = document.querySelector('#notificationBar p span');
+    if (announcement) {
+        const { freeShippingThreshold, deliveryFee, autoApplyFreeShipping } = window.storefrontSettings;
+        if (deliveryFee === 0) {
+            announcement.textContent = 'Free delivery on all orders.';
+        } else if (autoApplyFreeShipping && freeShippingThreshold === 0) {
+            announcement.textContent = 'Free delivery on all orders.';
+        } else if (autoApplyFreeShipping) {
+            announcement.textContent = `Free shipping on orders of ₹${freeShippingThreshold.toFixed(0)} or more.`;
+        } else {
+            announcement.textContent = `Delivery charge ₹${deliveryFee.toFixed(2)} per order.`;
+        }
+    }
+
+    const checkoutShippingDetails = document.getElementById('shipping-details');
+    if (checkoutShippingDetails) {
+        const { freeShippingThreshold, deliveryFee, autoApplyFreeShipping } = window.storefrontSettings;
+        if (deliveryFee === 0) {
+            checkoutShippingDetails.textContent = 'Free delivery on all orders';
+        } else if (autoApplyFreeShipping && freeShippingThreshold > 0) {
+            checkoutShippingDetails.textContent = `Free shipping on orders of ₹${freeShippingThreshold.toFixed(0)} or more`;
+        } else if (autoApplyFreeShipping) {
+            checkoutShippingDetails.textContent = 'Free shipping on all orders';
+        } else {
+            checkoutShippingDetails.textContent = deliveryFee > 0
+                ? `Delivery fee ₹${deliveryFee.toFixed(2)} per order`
+                : 'Free delivery on all orders';
+        }
+    }
+
+    const shippingPolicyCharges = document.getElementById('shippingPolicyCharges');
+    if (shippingPolicyCharges) {
+        const { freeShippingThreshold, deliveryFee, autoApplyFreeShipping } = window.storefrontSettings;
+        if (deliveryFee === 0) {
+            shippingPolicyCharges.textContent = 'Free delivery is available on all orders across India.';
+        } else if (autoApplyFreeShipping && freeShippingThreshold > 0) {
+            shippingPolicyCharges.textContent = `Standard delivery is ₹${deliveryFee.toFixed(2)} per order. Free shipping applies automatically to orders of ₹${freeShippingThreshold.toFixed(0)} or more across India.`;
+        } else if (autoApplyFreeShipping) {
+            shippingPolicyCharges.textContent = 'Free shipping applies automatically to all orders across India.';
+        } else {
+            shippingPolicyCharges.textContent = deliveryFee > 0
+                ? `Standard delivery is ₹${deliveryFee.toFixed(2)} per order. Automatic free shipping is not available.`
+                : 'Free delivery is available on all orders across India.';
+        }
+    }
+
+    window.dispatchEvent(new CustomEvent('storefrontSettingsUpdated', {
+        detail: window.storefrontSettings
+    }));
+}
+
+let productSettingsWatchersStarted = false;
 function applyProductStockStatus(productId, inStock) {
     const cards = document.querySelectorAll(`.product-card[data-id="${productId}"]`);
     cards.forEach((card) => {
@@ -201,15 +296,24 @@ function applyProductStockStatus(productId, inStock) {
 
 function watchProductStockStatus() {
     if (typeof db === 'undefined' || typeof db.collection !== 'function') return;
+    if (productSettingsWatchersStarted) return;
+    productSettingsWatchersStarted = true;
 
-    products.forEach(({ id }) => {
+    products.forEach(({ id, price }) => {
         db.collection('products').doc(String(id)).onSnapshot((snapshot) => {
             const data = snapshot.data();
             const inStock = data && typeof data.inStock === 'boolean' ? data.inStock : true;
             applyProductStockStatus(id, inStock);
+            applyProductPrice(id, data && typeof data.price === 'number' ? data.price : price);
         }, (error) => {
-            console.error(`Unable to load stock status for product ${id}:`, error);
+            console.error(`Unable to load product settings for product ${id}:`, error);
         });
+    });
+
+    db.collection('settings').doc('storefront').onSnapshot(snapshot => {
+        updateStorefrontSettings(snapshot.exists ? snapshot.data() : {});
+    }, error => {
+        console.error('Unable to load storefront settings:', error);
     });
 }
 
@@ -2665,6 +2769,7 @@ window.addEventListener('scroll', () => {
 
 function initCommon() {
     addFavicon();
+    watchProductStockStatus();
     loadGuestData();
     initOrderTracking();
     loadFooter();

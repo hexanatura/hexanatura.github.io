@@ -2,6 +2,22 @@
 let isProcessingPayment = false;
 let razorpayScriptLoaded = false;
 
+function calculateShippingCost(subtotal, includeShippingPromo = true) {
+    const amount = Number(subtotal) || 0;
+    if (amount <= 0) return 0;
+    if (includeShippingPromo && window.appliedPromoType === 'shipping') return 0;
+
+    const settings = window.storefrontSettings || {};
+    const threshold = Number(settings.freeShippingThreshold ?? 299);
+    const deliveryFee = Number(settings.deliveryFee ?? 59);
+    if (settings.autoApplyFreeShipping !== false && amount >= threshold) return 0;
+    return Math.max(0, deliveryFee);
+}
+
+window.addEventListener('storefrontSettingsUpdated', () => {
+    if (typeof updateOrderSummary === 'function') updateOrderSummary();
+});
+
 
 // Initialize checkout page
 async function initCheckoutPage() {
@@ -268,6 +284,7 @@ function updateTotals() {
     
     const subtotal = Number(window.cartSubtotal) || 0;
     const newTotal = Math.max(0, window.originalTotal - window.currentDiscount);
+    const shippingMethodPrice = document.getElementById('shipping-price');
     
     // Update display - show original subtotal
     subtotalElement.textContent = `₹${subtotal.toFixed(2)}`;
@@ -282,6 +299,11 @@ function updateTotals() {
     } else {
         shippingElement.textContent = 'FREE';
         shippingElement.style.color = '#27ae60'; // Green for free shipping
+    }
+    if (shippingMethodPrice) {
+        shippingMethodPrice.textContent = window.shippingCost > 0
+            ? `₹${window.shippingCost.toFixed(2)}`
+            : 'FREE';
     }
     
     // Show discount if applied (but not for shipping type)
@@ -429,7 +451,7 @@ function applyPromoCode() {
     // If there's already a different code applied, remove it first
     if (window.appliedPromoCode && window.appliedPromoCode !== promoCode) {
         if (window.appliedPromoType === 'shipping') {
-            window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+            window.shippingCost = calculateShippingCost(window.cartSubtotal, false);
             window.originalTotal = window.cartSubtotal + window.shippingCost;
         }
         window.currentDiscount = 0;
@@ -688,7 +710,7 @@ function selectPromoCode(code) {
     // If there's already a different code applied, remove it first
     if (window.appliedPromoCode && window.appliedPromoCode !== code) {
         if (window.appliedPromoType === 'shipping') {
-            window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+            window.shippingCost = calculateShippingCost(window.cartSubtotal, false);
             window.originalTotal = window.cartSubtotal + window.shippingCost;
         }
         window.currentDiscount = 0;
@@ -741,7 +763,7 @@ function removePromoCode(showConfirmation = true) {
     window.currentDiscount = 0;
     window.appliedPromoCode = null;
     window.appliedPromoType = null;
-    window.shippingCost = window.cartSubtotal > 0 ? 59 : 0;
+    window.shippingCost = calculateShippingCost(window.cartSubtotal, false);
     window.originalTotal = window.cartSubtotal + window.shippingCost;
     
     // Clear input field
@@ -1269,7 +1291,7 @@ function updateOrderSummary() {
     }
     
 window.cartSubtotal = subtotal;
-window.shippingCost = window.appliedPromoType === 'shipping' ? 0 : (subtotal > 0 ? 59 : 0);
+window.shippingCost = calculateShippingCost(subtotal);
 window.originalTotal = subtotal + window.shippingCost;
 updateTotals();
 refreshPromoCodes();
