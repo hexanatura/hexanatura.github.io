@@ -8,9 +8,9 @@
 
 .content-wrapper > .page-header {
   display: flex;
-  width: min(95%, 1400px) !important;
-  height: clamp(170px, 15vw, 196px) !important;
-  min-height: clamp(170px, 15vw, 196px) !important;
+  width: min(100% - 48px, 1200px) !important;
+  height: clamp(150px, 12vw, 172px) !important;
+  min-height: clamp(150px, 12vw, 172px) !important;
   box-sizing: border-box;
   flex-direction: column;
   align-items: center;
@@ -18,12 +18,12 @@
   gap: 6px;
   margin: 0 auto 10px !important;
   padding: 14px 5% !important;
-  border-radius: 34px !important;
+  border-radius: 28px !important;
 }
 
 .content-wrapper > .page-header h1 {
   margin: 0 0 2px !important;
-  font-size: clamp(28px, 3.1vw, 42px) !important;
+  font-size: clamp(28px, 2.5vw, 36px) !important;
   line-height: 1.05 !important;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .content-wrapper > :not(.page-header) {
-  max-width: 1280px;
+  max-width: 1200px !important;
   box-sizing: border-box;
   margin-left: auto;
   margin-right: auto;

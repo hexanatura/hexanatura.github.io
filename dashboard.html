@@ -2654,8 +2654,7 @@ body {
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
-
-
+    <script src="order-data.js?v=20261107-orders-group"></script>
 <script>
     var firebaseConfig = {
         apiKey: "AIzaSyDuF6bdqprddsE871GuOablXPYqXI_HJxc",
@@ -2772,22 +2771,22 @@ body {
 
         async searchOrders(query) {
             const results = [];
-            const snapshot = await db.collection("orders")
+            const snapshot = await window.orderDataUtils.collection()
                 .orderBy("createdAt", "desc")
-                .limit(50)
+                .limit(100)
                 .get();
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const searchableText = this.getOrderSearchText(data, doc.id);
+            window.orderDataUtils.getUniqueOrders(snapshot).forEach(order => {
+                const data = order.data;
+                const searchableText = this.getOrderSearchText(data, order.id);
                 const relevance = this.calculateRelevance(searchableText, query);
                 
                 if (relevance > 0) {
                     results.push({
                         type: 'order',
-                        id: doc.id,
+                        id: order.id,
                         data: data,
-                        title: `Order #${doc.id.substring(0, 8)}`,
+                        title: `Order #${order.id.substring(0, 8)}`,
                         subtitle: `₹${Number(data.total || 0).toFixed(2)} • ${data.status || 'pending'}`,
                         relevance: relevance,
                         timestamp: data.createdAt
@@ -3631,18 +3630,20 @@ function statusClass(s) {
 
         const { start, end } = getDayRange(date);
 
-        db.collection("orders")
+        window.orderDataUtils.collection()
             .where("createdAt", ">=", start)
             .where("createdAt", "<=", end)
             .get()
             .then(snapshot => {
                 let total = 0;
-                snapshot.forEach(doc => total += Number(doc.data().total || 0));
+                window.orderDataUtils.getUniqueOrders(snapshot)
+                    .filter(order => window.orderDataUtils.isPaidOrder(order.data))
+                    .forEach(order => total += Number(order.data.total || 0));
                 target.textContent = "₹" + total.toFixed(2);
             })
             .catch((error) => {
                 console.error("Error fetching revenue:", error);
-                target.textContent = "₹0.00";
+                target.textContent = "—";
             });
     }
 
@@ -3704,21 +3705,6 @@ function statusClass(s) {
             });
     }
 
-function updatePendingOrdersCount() {
-    const target = document.querySelector('.welcome-stats .welcome-stat:nth-child(2) .stat-number');
-    if (!target) return;
-
-    db.collection("orders")
-        .where("status", "==", "ordered") // Changed from "pending"
-        .where("paymentStatus", "==", "paid") // Only count paid orders
-        .onSnapshot(snapshot => {
-            target.textContent = snapshot.size;
-        }, (error) => {
-            console.error("Error fetching pending orders:", error);
-            target.textContent = "0";
-        });
-}
-
     function updateStatsForDate(date) {
         selectedDate = new Date(date.getTime());
         updateRevenueForDate(selectedDate);
@@ -3732,18 +3718,22 @@ function updatePendingOrdersCount() {
         if (!valueEl || !changeEl) return;
 
         Promise.all([
-            db.collection("orders")
+            window.orderDataUtils.collection()
                 .where("createdAt", ">=", CUR.start)
                 .where("createdAt", "<=", CUR.end)
                 .get(),
-            db.collection("orders")
+            window.orderDataUtils.collection()
                 .where("createdAt", ">=", PREV.start)
                 .where("createdAt", "<=", PREV.end)
                 .get()
         ]).then(([curSnap, prevSnap]) => {
             let curTotal = 0, prevTotal = 0;
-            curSnap.forEach(d => curTotal += Number(d.data().total || 0));
-            prevSnap.forEach(d => prevTotal += Number(d.data().total || 0));
+            window.orderDataUtils.getUniqueOrders(curSnap)
+                .filter(order => window.orderDataUtils.isPaidOrder(order.data))
+                .forEach(order => curTotal += Number(order.data.total || 0));
+            window.orderDataUtils.getUniqueOrders(prevSnap)
+                .filter(order => window.orderDataUtils.isPaidOrder(order.data))
+                .forEach(order => prevTotal += Number(order.data.total || 0));
 
             valueEl.textContent = "₹" + curTotal.toFixed(2);
 
@@ -3757,8 +3747,8 @@ function updatePendingOrdersCount() {
             }
         }).catch(error => {
             console.error("Error updating monthly revenue:", error);
-            valueEl.textContent = "₹0.00";
-            changeEl.innerHTML = `<i class="fas fa-arrow-up"></i> 0.0%`;
+            valueEl.textContent = "—";
+            changeEl.textContent = "Unavailable";
         });
     }
 
@@ -3799,13 +3789,13 @@ function updatePendingOrdersCount() {
         if (!valueEl || !changeEl) return;
 
         Promise.all([
-            db.collection("orders").get(),
-            db.collection("orders").where("createdAt", ">=", CUR.start).where("createdAt", "<=", CUR.end).get(),
-            db.collection("orders").where("createdAt", ">=", PREV.start).where("createdAt", "<=", PREV.end).get()
+            window.orderDataUtils.collection().get(),
+            window.orderDataUtils.collection().where("createdAt", ">=", CUR.start).where("createdAt", "<=", CUR.end).get(),
+            window.orderDataUtils.collection().where("createdAt", ">=", PREV.start).where("createdAt", "<=", PREV.end).get()
         ]).then(([allSnap, curSnap, prevSnap]) => {
-            const allCount = allSnap.size;
-            const curCount = curSnap.size;
-            const prevCount = prevSnap.size;
+            const allCount = window.orderDataUtils.getUniqueOrders(allSnap).length;
+            const curCount = window.orderDataUtils.getUniqueOrders(curSnap).length;
+            const prevCount = window.orderDataUtils.getUniqueOrders(prevSnap).length;
 
             valueEl.textContent = allCount;
             const pct = calcPercentChange(curCount, prevCount);
@@ -3819,8 +3809,8 @@ function updatePendingOrdersCount() {
             }
         }).catch(error => {
             console.error("Error updating orders metric:", error);
-            valueEl.textContent = "0";
-            changeEl.innerHTML = `<i class="fas fa-arrow-up"></i> 0.0%`;
+            valueEl.textContent = "—";
+            changeEl.textContent = "Unavailable";
         });
     }
 
@@ -3885,22 +3875,25 @@ function loadDashboardRecentOrders() {
         window.dashboardOrdersListener();
     }
 
-window.dashboardOrdersListener = db.collection("orders")
+window.dashboardOrdersListener = window.orderDataUtils.collection()
   .where("paymentStatus", "in", ["paid", "completed"]) // Only show paid orders
   .orderBy("createdAt", "desc")
-  .limit(5)
+  .limit(10)
   .onSnapshot(snapshot => {
-            if (snapshot.empty) {
-                renderDashboardEmptyOrders(list);
-                return;
-            }
+        const recentOrders = window.orderDataUtils.getUniqueOrders(snapshot)
+            .filter(order => window.orderDataUtils.isPaidOrder(order.data))
+            .slice(0, 5);
+        if (recentOrders.length === 0) {
+            renderDashboardEmptyOrders(list);
+            return;
+        }
 
-            list.innerHTML = "";
-            snapshot.forEach(doc => {
-                const o = doc.data();
-                const div = document.createElement("div");
-                div.className = "order-item fade-in";
-                div.setAttribute('data-order-id', doc.id);
+        list.innerHTML = "";
+        recentOrders.forEach(order => {
+            const o = order.data;
+            const div = document.createElement("div");
+            div.className = "order-item fade-in";
+            div.setAttribute('data-order-id', order.id);
                 
                 const total = Number(o.total || 0).toFixed(2);
                 const status = (o.status || "pending").toLowerCase();
@@ -3913,7 +3906,7 @@ window.dashboardOrdersListener = db.collection("orders")
 
                 // Use the orderNumber field from Firestore document
                 // If orderNumber doesn't exist, fall back to Firebase ID
-                const orderNum = o.orderNumber || o.orderNo || o.order_id || `#${doc.id.substring(0, 8)}`;
+                const orderNum = o.orderNumber || o.orderNo || o.order_id || `#${order.id.substring(0, 8)}`;
                 
                 div.innerHTML = `
                     <div class="order-info">
@@ -3965,11 +3958,16 @@ window.dashboardOrdersListener = db.collection("orders")
             });
         }, (error) => {
             console.error("Error loading recent orders:", error);
-            renderDashboardEmptyOrders(list);
+            list.innerHTML = `<div style="padding:22px;color:#b91c1c">
+                Orders could not be loaded. Check the connection and permissions, then refresh.
+            </div>`;
         });
 }
 function openDashboardOrderModal(orderId, orderData = null) {
     // First, navigate to Orders page
+    localStorage.setItem(LAST_OPEN.orders, Date.now());
+    updateBadge(document.getElementById("countOrders"), 0);
+    checkNewItems("orders", LAST_OPEN.orders, document.getElementById("countOrders"), "createdAt");
     const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(item => item.classList.remove('active'));
     document.getElementById('menuOrders').classList.add('active');
@@ -4223,14 +4221,28 @@ function closeMobileMenu() {
             menuListeners[collection]();
         }
         
-        menuListeners[collection] = db.collection(collection)
+        const source = collection === "orders"
+            ? window.orderDataUtils.collection()
+            : db.collection(collection);
+
+        menuListeners[collection] = source
             .where(field, ">", firebase.firestore.Timestamp.fromMillis(lastOpen))
             .onSnapshot(snap => {
                 if (!badgeEl) return;
-                const newCount = snap.size;
+                const newCount = collection === "orders"
+                    ? window.orderDataUtils.getUniqueOrders(snap).length
+                    : snap.size;
                 updateBadge(badgeEl, newCount);
+                if (collection === "orders") {
+                    const pendingTarget = document.querySelector('.welcome-stats .welcome-stat:nth-child(2) .stat-number');
+                    if (pendingTarget) pendingTarget.textContent = String(newCount);
+                }
             }, error => {
                 console.error(`Error listening to ${collection}:`, error);
+                if (collection === "orders") {
+                    const pendingTarget = document.querySelector('.welcome-stats .welcome-stat:nth-child(2) .stat-number');
+                    if (pendingTarget) pendingTarget.textContent = "—";
+                }
             });
     }
 
@@ -4261,6 +4273,7 @@ function closeMobileMenu() {
                 case 'Orders':
                     localStorage.setItem(LAST_OPEN.orders, Date.now());
                     updateBadge(document.getElementById("countOrders"), 0);
+                    checkNewItems("orders", LAST_OPEN.orders, document.getElementById("countOrders"), "createdAt");
                     loadOrdersPage();
                     break;
                 case 'Product Stock':
@@ -4347,7 +4360,6 @@ function closeMobileMenu() {
         setTimeout(() => {
             loadDashboardRecentOrders();
             loadDashboardRecentReviews();
-            updatePendingOrdersCount();
         }, 200);
 
         setTimeout(() => {

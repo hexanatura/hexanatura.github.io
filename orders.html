@@ -830,7 +830,6 @@
  
   let ordersCleanup = new Set();
   let ordersListener = null;
-  let usersListener = null;
 
   function cleanupOrders() {
     ordersCleanup.forEach(fn => fn());
@@ -838,10 +837,6 @@
     if (ordersListener) {
       ordersListener();
       ordersListener = null;
-    }
-    if (usersListener) {
-      usersListener();
-      usersListener = null;
     }
   }
 
@@ -996,167 +991,58 @@
     }
   });
 
-  async function loadOrdersFromAllUsers() {
+  async function refreshOrders() {
     try {
-      console.log("Loading orders from all users...");
-      t.innerHTML = `<tr><td colspan="7" class="muted">Loading orders from all users…</td></tr>`;
-      c.innerHTML = `<div class="order-card" style="text-align:center;padding:40px 20px;color:var(--muted)">
-        <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;margin-bottom:16px;color:var(--accent)"></i>
-        <p>Loading orders from all users...</p>
-      </div>`;
-
-      // First, try to get orders from the main orders collection
-      const ordersSnapshot = await db.collection("orders")
+      const ordersSnapshot = await window.orderDataUtils.collection()
         .orderBy("createdAt", "desc")
-        .limit(200) // Increased limit to show more orders
+        .limit(500)
         .get();
-
-      if (!ordersSnapshot.empty) {
-        console.log(`Found ${ordersSnapshot.size} orders in main collection`);
-        processOrdersFromMainCollection(ordersSnapshot);
-        return;
-      }
-
-      // If no orders in main collection, try to get from all users
-      console.log("No orders in main collection, checking all users...");
-      const allOrders = [];
-
-      // Get all users
-      const usersSnapshot = await db.collection("users").get();
-      
-      if (usersSnapshot.empty) {
-        console.log("No users found");
-        empty();
-        return;
-      }
-
-      console.log(`Found ${usersSnapshot.size} users`);
-
-      // For each user, get their orders
-      const promises = [];
-      usersSnapshot.forEach(userDoc => {
-        const promise = db.collection("users")
-          .doc(userDoc.id)
-          .collection("orders")
-          .orderBy("createdAt", "desc")
-          .limit(100) // Increased limit per user
-          .get()
-          .then(ordersSnapshot => {
-            ordersSnapshot.forEach(orderDoc => {
-              const orderData = orderDoc.data();
-              const orderDate = orderData.createdAt?.toDate ? orderData.createdAt.toDate() : new Date();
-              allOrders.push({
-                ...orderData,
-                id: orderDoc.id,
-                userId: userDoc.id,
-                _source: "user",
-                _name: ((orderData.shippingAddress?.firstName || "") + " " + (orderData.shippingAddress?.lastName || "")).toLowerCase(),
-                _email: (orderData.email || "").toLowerCase(),
-                _created: orderDate.getTime(),
-                _createdDate: orderDate,
-                items: orderData.items || [],
-              });
-            });
-          });
-        promises.push(promise);
-      });
-
-      await Promise.all(promises);
-      
-      console.log(`Total orders found: ${allOrders.length}`);
-      
-      if (allOrders.length === 0) {
-        empty();
-        return;
-      }
-
-      // Sort by date (newest first) - Ensures new orders are always at top
-      allOrders.sort((a, b) => b._created - a._created);
-      
-      orders = allOrders;
-      requestAnimationFrame(() => {
-        list(allOrders);
-        toast(`Loaded ${allOrders.length} orders from users`);
-      });
-
+      processOrdersSnapshot(ordersSnapshot);
     } catch (error) {
       console.error("Error loading orders:", error);
-      empty();
-      toast("Error loading orders", "error");
+      showOrdersLoadError();
     }
   }
 
-  function processOrdersFromMainCollection(ordersSnapshot) {
-    const allOrders = [];
-    
-    ordersSnapshot.forEach(doc => {
-      const orderData = doc.data();
-      const orderDate = orderData.createdAt?.toDate ? orderData.createdAt.toDate() : new Date();
-      allOrders.push({
-        ...orderData,
-        id: doc.id,
-        userId: orderData.userId || null,
-        _source: "main",
-        _name: ((orderData.shippingAddress?.firstName || "") + " " + (orderData.shippingAddress?.lastName || "")).toLowerCase(),
-        _email: (orderData.email || "").toLowerCase(),
-        _created: orderDate.getTime(),
-        _createdDate: orderDate,
-        items: orderData.items || [],
-      });
-    });
-
-    console.log(`Processed ${allOrders.length} orders from main collection`);
-    
-    // Sort by date (newest first)
-    allOrders.sort((a, b) => b._created - a._created);
+  function processOrdersSnapshot(ordersSnapshot) {
+    const allOrders = window.orderDataUtils.getUniqueOrders(ordersSnapshot).map(order => ({
+        ...order.data,
+        id: order.id,
+        userId: order.userId,
+        _source: order.source,
+        _name: ((order.data.shippingAddress?.firstName || "") + " " + (order.data.shippingAddress?.lastName || "")).toLowerCase(),
+        _email: (order.data.email || "").toLowerCase(),
+        _created: order.createdAtMillis,
+        _createdDate: new Date(order.createdAtMillis),
+        items: order.data.items || [],
+      }));
     
     orders = allOrders;
+    if (allOrders.length === 0) {
+      empty();
+      return;
+    }
+
     requestAnimationFrame(() => {
       list(allOrders);
-      toast(`Loaded ${allOrders.length} orders`);
     });
   }
 
   function setupRealTimeListener() {
     cleanupOrders();
 
-    // Listen to main orders collection
-    ordersListener = db.collection("orders")
+    ordersListener = window.orderDataUtils.collection()
       .orderBy("createdAt", "desc")
-      .limit(200)
+      .limit(500)
       .onSnapshot((snapshot) => {
-        if (!snapshot.empty) {
-          console.log("Real-time update from main collection");
-          processOrdersFromMainCollection(snapshot);
-        } else {
-          // If main collection is empty, set up listener for new users with orders
-          console.log("Main collection empty, setting up user listeners");
-          setupUserOrderListeners();
-        }
+        processOrdersSnapshot(snapshot);
       }, (err) => {
         console.error("Error in real-time listener:", err);
-        toast("Error loading orders", "error");
+        showOrdersLoadError();
       });
 
     ordersCleanup.add(() => {
       if (ordersListener) ordersListener();
-    });
-  }
-
-  function setupUserOrderListeners() {
-    // Listen to users collection
-    usersListener = db.collection("users")
-      .onSnapshot((usersSnapshot) => {
-        if (!usersSnapshot.empty) {
-          console.log("Users updated, checking for orders...");
-          loadOrdersFromAllUsers();
-        }
-      }, (err) => {
-        console.error("Error in users listener:", err);
-      });
-
-    ordersCleanup.add(() => {
-      if (usersListener) usersListener();
     });
   }
 
@@ -1167,9 +1053,22 @@
       <p>Loading orders...</p>
     </div>`;
 
-    // Load initial orders and set up real-time listeners
-    loadOrdersFromAllUsers();
+    // The collection-group listener includes both global and per-user order records.
     setupRealTimeListener();
+  }
+
+  function showOrdersLoadError() {
+    t.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <i class="fas fa-triangle-exclamation" style="font-size:2rem;margin-bottom:12px;color:var(--danger)"></i>
+      <p>Orders could not be loaded</p>
+      <div class="muted" style="font-size:0.9rem;margin-top:8px">Check the connection and permissions, then refresh.</div>
+    </div></td></tr>`;
+    c.innerHTML = `<div class="order-card" style="text-align:center;padding:32px 20px;color:var(--danger)">
+      <i class="fas fa-triangle-exclamation" style="font-size:2rem;margin-bottom:12px"></i>
+      <p>Orders could not be loaded</p>
+      <div class="muted" style="font-size:0.9rem">Check the connection and permissions, then refresh.</div>
+    </div>`;
+    toast("Error loading orders", "error");
   }
 
   function empty() {
@@ -1719,7 +1618,7 @@
         toast(message);
         
         // Refresh the orders list to show updated status
-        loadOrdersFromAllUsers();
+        refreshOrders();
       } else {
         toast("Order not found in any location", "error");
       }

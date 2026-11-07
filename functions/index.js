@@ -1119,6 +1119,56 @@ exports.verifyPayment = require("firebase-functions/v2").https.onCall(
   }
 );
 
+async function sendPaidOrderNotifications(order, orderId) {
+  const displayOrderId = order.orderId || orderId;
+  console.log('✅ Paid order created, sending notifications:', {
+    orderId: displayOrderId,
+    email: order.email,
+    total: order.total,
+    paymentStatus: order.paymentStatus
+  });
+
+  const mailer = transporter();
+  await mailer.sendMail({
+    from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
+    to: ADMIN_EMAIL,
+    subject: `💰 New PAID Order - ${displayOrderId}`,
+    html: adminMail(`New PAID order received: ${displayOrderId}`, "💰"),
+  });
+
+  if (order.email && isValidEmail(order.email)) {
+    const paymentDetails = {
+      id: order.razorpayPaymentId || '—',
+      method: order.paymentMethod || 'Razorpay',
+      created_at: Math.floor(Date.now() / 1000)
+    };
+
+    await mailer.sendMail({
+      from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
+      to: order.email,
+      subject: `🎉 Payment Successful – Order ${displayOrderId}`,
+      html: successOrderEmail(order, paymentDetails),
+    });
+    console.log(`✅ Success email sent to: ${order.email}`);
+  } else if (order.email) {
+    console.log(`⚠️ Invalid email address: ${order.email}, skipping customer email`);
+  }
+
+  if (order.orderId) {
+    const tempOrdersSnapshot = await admin.firestore()
+      .collection('tempOrders')
+      .where('orderId', '==', order.orderId)
+      .get();
+
+    if (!tempOrdersSnapshot.empty) {
+      const batch = admin.firestore().batch();
+      tempOrdersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      console.log('🗑️ Cleaned up temp orders');
+    }
+  }
+}
+
 /* ===== ORDER CREATED - ONLY FOR PAID ORDERS ===== */
 exports.onOrderCreated = onDocumentCreated(
   {
@@ -1128,86 +1178,62 @@ exports.onOrderCreated = onDocumentCreated(
   async (event) => {
     try {
       const orderId = event.params.id;
-      console.log(`📦 Order created: ${orderId}`);
-      
-      const orderDoc = await admin.firestore()
-        .collection("orders")
-        .doc(orderId)
-        .get();
-      
-      const order = orderDoc.data();
-      
+      const order = event.data?.data();
+
       if (!order) {
         console.error(`❌ Order ${orderId} not found`);
         return;
       }
-      
-      // ONLY send notifications for PAID orders
-      if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'completed') {
+
+      if (!['paid', 'completed'].includes(String(order.paymentStatus || '').toLowerCase())) {
         console.log(`⚠️ Order ${orderId} not paid, skipping notifications`);
         return;
       }
-      
-      // Get the display order ID - orderId from the document ID or from order.orderId field
-      const displayOrderId = order.orderId || orderId;
-      
-      console.log('✅ Paid order created, sending notifications:', {
-        orderId: displayOrderId,
-        email: order.email,
-        total: order.total,
-        paymentStatus: order.paymentStatus
-      });
-      
-      const mailer = transporter();
-      
-      // Send admin notification
-      await mailer.sendMail({
-        from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
-        to: ADMIN_EMAIL,
-        subject: `💰 New PAID Order - ${displayOrderId}`,
-        html: adminMail(`New PAID order received: ${displayOrderId}`, "💰"),
-      });
-      console.log('✅ Admin notification sent for paid order');
-      
-      // Send customer confirmation email (payment success email)
-      if (order.email && isValidEmail(order.email)) {
-        // Get payment details if available
-        let paymentDetails = {
-          id: order.razorpayPaymentId || '—',
-          method: order.paymentMethod || 'Razorpay',
-          created_at: Math.floor(Date.now() / 1000)
-        };
-        
-        await mailer.sendMail({
-          from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
-          to: order.email,
-          subject: `🎉 Payment Successful – Order ${displayOrderId}`,
-          html: successOrderEmail(order, paymentDetails),
-        });
-        console.log(`✅ Success email sent to: ${order.email}`);
-      } else if (order.email) {
-        console.log(`⚠️ Invalid email address: ${order.email}, skipping customer email`);
-      }
-      
-      // Clean up temp order if exists
-      if (order.orderId) {
-        const tempOrdersSnapshot = await admin.firestore()
-          .collection('tempOrders')
-          .where('orderId', '==', order.orderId)
-          .get();
-        
-        if (!tempOrdersSnapshot.empty) {
-          const batch = admin.firestore().batch();
-          tempOrdersSnapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-          });
-          await batch.commit();
-          console.log('🗑️ Cleaned up temp orders');
-        }
-      }
-      
+
+      await sendPaidOrderNotifications(order, orderId);
     } catch (error) {
       console.error('🔥 Error in onOrderCreated:', error);
+    }
+  }
+);
+
+/* ===== USER-SUBCOLLECTION ORDER CREATED ===== */
+exports.onUserOrderCreated = onDocumentCreated(
+  {
+    document: "users/{userId}/orders/{id}",
+    region: "asia-south1",
+  },
+  async (event) => {
+    try {
+      const orderId = event.params.id;
+      const order = event.data?.data();
+
+      if (!order || !['paid', 'completed'].includes(String(order.paymentStatus || '').toLowerCase())) {
+        return;
+      }
+
+      const db = admin.firestore();
+      const rootOrder = await db.collection("orders").doc(orderId).get();
+      if (rootOrder.exists) {
+        console.log(`ℹ️ Order ${orderId} already exists globally; notification handled by onOrderCreated`);
+        return;
+      }
+
+      const externalOrderId = order.orderId;
+      if (externalOrderId) {
+        const matchingRootOrder = await db.collection("orders")
+          .where("orderId", "==", externalOrderId)
+          .limit(1)
+          .get();
+        if (!matchingRootOrder.empty) {
+          console.log(`ℹ️ Order ${externalOrderId} already exists globally; skipping duplicate notification`);
+          return;
+        }
+      }
+
+      await sendPaidOrderNotifications(order, orderId);
+    } catch (error) {
+      console.error('🔥 Error in onUserOrderCreated:', error);
     }
   }
 );
