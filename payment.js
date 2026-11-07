@@ -1,6 +1,7 @@
 
 let isProcessingPayment = false;
 let razorpayScriptLoaded = false;
+let orderSuccessFlowActive = false;
 
 function calculateShippingCost(subtotal, includeShippingPromo = true) {
     const amount = Number(subtotal) || 0;
@@ -1231,14 +1232,15 @@ function updateOrderSummary() {
             checkoutBtn.style.cursor = 'not-allowed';
         }
         
-      setTimeout(() => {
-            showNotification('Your cart is empty! Redirecting to Home...', 'info');
-            
-            // Redirect after 3 seconds
+        if (!orderSuccessFlowActive) {
             setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 3000);
-        }, 1000);
+                if (orderSuccessFlowActive) return;
+                showNotification('Your cart is empty! Redirecting to Home...', 'info');
+                setTimeout(() => {
+                    if (!orderSuccessFlowActive) window.location.href = 'index.html';
+                }, 3000);
+            }, 1000);
+        }
         
         return; 
     } else {
@@ -1675,13 +1677,18 @@ async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
         
         console.log('✅ Final order created:', finalOrderId);
         
-        // 4. Update user's orders if logged in
+        let profileOrderSaved = false;
         if (currentUser) {
-            await db.collection('users').doc(currentUser.uid)
-                .collection('orders').doc(finalOrderId).set({
-                    ...finalOrderData,
-                    id: finalOrderId
-                });
+            try {
+                await db.collection('users').doc(currentUser.uid)
+                    .collection('orders').doc(finalOrderId).set({
+                        ...finalOrderData,
+                        id: finalOrderId
+                    });
+                profileOrderSaved = true;
+            } catch (profileError) {
+                console.error('Order confirmed, but saving it to the customer profile failed:', profileError);
+            }
         }
         
         // 5. Delete temp order
@@ -1689,6 +1696,7 @@ async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
         console.log('🗑️ Temp order deleted:', tempOrderId);
         
         // 6. Clear cart
+        orderSuccessFlowActive = true;
         await clearCartAfterOrder();
         
         // 7. Reset payment processing flag
@@ -1697,7 +1705,8 @@ async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
         // 8. Show success popup
         const updatedOrderData = {
             ...finalOrderData,
-            id: finalOrderId
+            id: finalOrderId,
+            profileOrderSaved
         };
         
         if (typeof showOrderSuccessPopup === 'function') {
@@ -1908,6 +1917,12 @@ function showOrderSuccessPopup(orderData) {
         const total = orderData.total || (window.originalTotal - window.currentDiscount);
         successOrderTotal.textContent = `₹${total.toFixed(2)}`;
     }
+    const profileMessage = document.getElementById('successProfileMessage');
+    if (profileMessage) {
+        profileMessage.textContent = orderData.profileOrderSaved
+            ? 'Order saved to your profile. Find it anytime under My Orders.'
+            : 'Your order is confirmed. Use Track Order to follow its status.';
+    }
     
     // Show modal with animation
     modal.classList.add('active');
@@ -1916,8 +1931,22 @@ function showOrderSuccessPopup(orderData) {
     const closeBtn = document.getElementById('closeSuccessModal');
     const trackBtn = document.getElementById('trackOrderBtn');
     const continueBtn = document.getElementById('continueShoppingBtn');
+    const dismissPopup = function(redirectHome = false) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        if (modal.successEscapeHandler) {
+            document.removeEventListener('keydown', modal.successEscapeHandler);
+            modal.successEscapeHandler = null;
+        }
+        if (redirectHome) {
+            if (modal.successRedirectTimer) clearTimeout(modal.successRedirectTimer);
+            modal.successRedirectTimer = setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 300);
+        }
+    };
+    modal.closeSuccessPopup = () => dismissPopup(true);
     
-    // Close button event - REDIRECT TO INDEX.HTML
     if (closeBtn) {
         const newCloseBtn = closeBtn.cloneNode(true);
         closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
@@ -1925,13 +1954,7 @@ function showOrderSuccessPopup(orderData) {
         newCloseBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 300);
+            dismissPopup(true);
         });
     }
     
@@ -1941,8 +1964,7 @@ function showOrderSuccessPopup(orderData) {
         trackBtn.parentNode.replaceChild(newTrackBtn, trackBtn);
         
         newTrackBtn.addEventListener('click', function() {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
+            dismissPopup();
             
             if (typeof window.showOrderTracking === 'function' && orderData.id) {
                 window.showOrderTracking(orderData.id);
@@ -1950,45 +1972,31 @@ function showOrderSuccessPopup(orderData) {
         });
     }
     
-    // Continue shopping button event - REDIRECT TO INDEX.HTML
     if (continueBtn) {
         const newContinueBtn = continueBtn.cloneNode(true);
         continueBtn.parentNode.replaceChild(newContinueBtn, continueBtn);
         
         newContinueBtn.addEventListener('click', function() {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
+            dismissPopup();
             window.location.href = 'index.html';
         });
     }
     
-    // Close when clicking outside the content - REDIRECT TO INDEX.HTML
     modal.onclick = function(e) {
         if (e.target === modal) {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 300);
+            dismissPopup(true);
         }
     };
     
-    // Close with Escape key - REDIRECT TO INDEX.HTML
     const closeOnEscape = function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
-            modal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 300);
-            
-            document.removeEventListener('keydown', closeOnEscape);
+            dismissPopup(true);
         }
     };
-    
-    document.removeEventListener('keydown', closeOnEscape);
+    if (modal.successEscapeHandler) {
+        document.removeEventListener('keydown', modal.successEscapeHandler);
+    }
+    modal.successEscapeHandler = closeOnEscape;
     document.addEventListener('keydown', closeOnEscape);
     
     // Disable body scroll
@@ -2000,16 +2008,16 @@ function createOrderSuccessModal() {
     
     const modalHTML = `
     <div id="orderSuccessModal" class="order-success-modal">
-        <div class="order-success-content">
-            <button id="closeSuccessModal" class="close-modal-btn">
+        <div class="order-success-content" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+            <button id="closeSuccessModal" class="close-modal-btn" type="button" aria-label="Close order confirmation">
                 <i class="fas fa-times"></i>
             </button>
             
             <div class="success-header">
                 <div class="success-icon">
-                    <i class="fas fa-check-circle"></i>
+                    <img class="success-animation" src="success-animation.svg" alt="" aria-hidden="true">
                 </div>
-                <h2>Order Confirmed!</h2>
+                <h2 id="successTitle">Order Confirmed!</h2>
                 <p>Thank you for your purchase</p>
             </div>
             
@@ -2042,6 +2050,10 @@ function createOrderSuccessModal() {
             </div>
             
             <div class="order-tips">
+                <div class="tip" id="successProfileTip">
+                    <i class="fas fa-user-check"></i>
+                    <span id="successProfileMessage">Your order is saved in your profile under My Orders.</span>
+                </div>
                 <div class="tip">
                     <i class="fas fa-envelope"></i>
                     <span>You will receive an order confirmation email shortly.</span>
@@ -2066,8 +2078,13 @@ function createOrderSuccessModal() {
 function closeOrderSuccessPopup() {
     const modal = document.getElementById('orderSuccessModal');
     if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
+        if (typeof modal.closeSuccessPopup === 'function') {
+            modal.closeSuccessPopup();
+        } else {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            window.location.href = 'index.html';
+        }
     }
 }
 

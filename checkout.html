@@ -55,7 +55,8 @@ body {
   z-index: 100000;
   opacity: 0;
   transition: opacity 0.3s ease;
-  padding: 16px;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   box-sizing: border-box;
 }
 
@@ -67,10 +68,11 @@ body {
 .order-success-content {
   background: #fff;
   border-radius: 18px;
-  padding: 32px;
+  padding: clamp(16px, 4vw, 28px);
   width: 100%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   overflow-y: auto;
   margin: auto;
   position: relative;
@@ -80,6 +82,8 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(95, 43, 39, 0.1);
   box-sizing: border-box;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .order-success-modal.active .order-success-content {
@@ -89,45 +93,45 @@ body {
 
 .success-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .success-icon {
   width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
-  border-radius: 50%;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  animation: bounceIn 0.6s ease;
+  margin: 0 auto 10px;
 }
 
-.success-icon i {
-  font-size: 32px;
-  color: #fff;
+.success-animation {
+  display: block;
+  width: 120px;
+  height: 128px;
+  max-width: none;
+  object-fit: contain;
 }
 
 .success-header h2 {
   font-family: 'Akira Expanded', sans-serif;
   color: #5f2b27;
-  font-size: 24px;
+  font-size: clamp(18px, 4vw, 23px);
   margin-bottom: 6px;
   line-height: 1.2;
 }
 
 .success-header p {
   color: #666;
-  font-size: 15px;
+  font-size: 14px;
   font-family: 'Quicksand', sans-serif;
 }
 
 .order-details {
   background: #f9f9f9;
   border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 22px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
   border: 1px solid #eee;
   box-sizing: border-box;
 }
@@ -136,7 +140,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #eee;
   font-family: 'Unbounded', sans-serif;
   gap: 12px;
@@ -148,7 +152,7 @@ body {
 
 .detail-label {
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   flex: 1;
 }
@@ -156,7 +160,7 @@ body {
 .detail-value {
   color: #333;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   text-align: right;
   flex: 1;
   word-break: break-word;
@@ -173,21 +177,28 @@ body {
 
 .order-actions {
   display: flex;
-  gap: 12px;
-  margin-bottom: 22px;
-  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: nowrap;
 }
 
 .order-actions .btn {
-  flex: 1;
-  min-width: 180px;
-  padding: 14px;
-  font-size: 15px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.25s ease;
+}
+
+.order-actions .btn i {
+  flex: 0 0 auto;
+  font-size: .9em;
 }
 
 .track-order-btn {
@@ -207,7 +218,7 @@ body {
 .order-tips {
   background: #f0f7ff;
   border-radius: 12px;
-  padding: 16px;
+  padding: 11px 13px;
   border-left: 4px solid #3498db;
   box-sizing: border-box;
 }
@@ -215,8 +226,8 @@ body {
 .tip {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
-  font-size: 13px;
+  margin-bottom: 6px;
+  font-size: 12px;
   font-family: 'Quicksand', sans-serif;
 }
 
@@ -248,55 +259,71 @@ body {
   justify-content: center;
 }
 
-@keyframes bounceIn {
-  0% { opacity: 0; transform: scale(0.3); }
-  60% { opacity: 1; transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
 @media (max-width: 768px) {
   .order-success-content {
-    max-width: 90%;
-    max-height: 85vh;
-    padding: 24px;
+    max-width: 500px;
   }
 }
 
 @media (max-width: 480px) {
   .order-success-content {
-    max-width: 95%;
-    padding: 20px;
+    max-width: 100%;
+    padding: 16px;
   }
 
   .detail-row {
-    align-items: flex-start;
+    align-items: center;
   }
 
   .detail-value {
-    text-align: left;
-  }
-
-  .order-actions {
-    flex-direction: column;
+    text-align: right;
   }
 
   .order-actions .btn {
-    min-width: 100%;
+    min-width: 0;
+    font-size: clamp(9px, 2.8vw, 11px);
+    padding: 9px 4px;
+    gap: 4px;
+  }
+
+  .order-tips {
+    padding: 9px 10px;
+  }
+
+  .tip {
+    font-size: 11px;
   }
 }
 
 @media (max-height: 700px) {
   .order-success-content {
-    max-height: 80vh;
+    padding: 12px 16px;
   }
 
-  .success-icon {
-    width: 52px;
-    height: 52px;
+  .success-header {
+    margin-bottom: 8px;
   }
 
-  .success-icon i {
-    font-size: 26px;
+  .order-details {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+  }
+
+  .detail-row {
+    padding: 4px 0;
+  }
+
+  .order-actions {
+    margin-bottom: 8px;
+  }
+
+  .order-actions .btn {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .order-tips {
+    padding: 8px 10px;
   }
 }
 
@@ -8225,17 +8252,17 @@ nav {
 
 <!-- This should be in your checkout.html file -->
 <div id="orderSuccessModal" class="order-success-modal">
-    <div class="order-success-content">
+    <div class="order-success-content" role="dialog" aria-modal="true" aria-labelledby="successTitle">
         <!-- Close button is FIRST element -->
-        <button id="closeSuccessModal" class="close-modal-btn">
+        <button id="closeSuccessModal" class="close-modal-btn" type="button" aria-label="Close order confirmation">
             <i class="fas fa-times"></i>
         </button>
         
         <div class="success-header">
             <div class="success-icon">
-                <i class="fas fa-check-circle"></i>
+                <img class="success-animation" src="success-animation.svg" alt="" aria-hidden="true">
             </div>
-            <h2>Order Confirmed!</h2>
+            <h2 id="successTitle">Order Confirmed!</h2>
             <p>Thank you for your purchase</p>
         </div>
         
@@ -8268,6 +8295,10 @@ nav {
         </div>
         
         <div class="order-tips">
+            <div class="tip" id="successProfileTip">
+                <i class="fas fa-user-check"></i>
+                <span id="successProfileMessage">Your order is saved in your profile under My Orders.</span>
+            </div>
             <div class="tip">
                 <i class="fas fa-envelope"></i>
                 <span>You will receive an order confirmation email shortly.</span>

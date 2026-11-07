@@ -2580,6 +2580,91 @@ body {
     }
 }
 
+#dynamicPage :where(.promo-modal, .orders-modal, .modal-overlay .modal) {
+    width: 100%;
+    margin: 0;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#dynamicPage :where(.promo-modal-bg, .orders-modal-bg, .modal-overlay) {
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+        max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+
+#dynamicPage :where(.promo-modal .modal-header, .orders-modal .modal-header, .modal-overlay .modal-header,
+    .promo-modal .modal-footer, .orders-modal .modal-footer, .modal-overlay .modal-footer) {
+    flex: 0 0 auto;
+}
+
+#dynamicPage :where(.promo-modal .modal-body, .orders-modal .modal-body, .modal-overlay .modal-body) {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+#dynamicPage .orders-modal .modal-body {
+    max-height: none;
+    display: block;
+}
+
+.review-modal-bg,
+.calendar-event-modal-bg {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.review-modal-bg .review-modal,
+.calendar-event-modal-bg .calendar-event-modal {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.review-modal-bg .review-modal .modal-header,
+.review-modal-bg .review-modal .modal-footer {
+    flex: 0 0 auto;
+}
+
+.review-modal-bg .review-modal .modal-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+    .review-modal-bg .review-modal,
+    .calendar-event-modal-bg .calendar-event-modal {
+        width: 100%;
+    }
+
+    .review-modal-bg .review-modal .modal-header,
+    .review-modal-bg .review-modal .modal-body,
+    .review-modal-bg .review-modal .modal-footer {
+        padding: 12px;
+    }
+
+    #rv-create-bg .modal-body {
+        gap: 10px 12px;
+    }
+
+    #cr-text {
+        min-height: 76px;
+    }
+}
+
     </style>
 </head>
 <body>
