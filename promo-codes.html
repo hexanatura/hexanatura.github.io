@@ -688,8 +688,6 @@
     </div>
   </div>
   
-  <script src="activityLogger.js?v=1"></script>
-
 <script>
     (function(){
         let promoListener = null;
@@ -1066,8 +1064,9 @@
                 return;
             }
 
-            const value = parseFloat(valueField.value || 0);
-            if (value <= 0) {
+            const value = Number(valueField.value);
+            if (selectedType !== 'shipping' &&
+                (!Number.isFinite(value) || value <= 0 || (selectedType === 'percentage' && value > 100))) {
                 showError('Please enter a valid value');
                 return;
             }
