@@ -1770,22 +1770,33 @@ exports.getCareerApplications = onCall(async (request) => {
   };
 });
 
-exports.getCareerApplicationsCount = onCall(async (request) => {
-  await requireCareerAdmin(request);
-  const since = Number(request.data?.since);
-  if (!Number.isFinite(since) || since < 0 || since > Date.now()) {
-    throw new HttpsError("invalid-argument", "Choose a valid date for the application count.");
+exports.getCareerApplicationsCount = onCall(
+  {
+    region: "asia-south1",
+    cors: [
+      "https://www.hexahoney.in",
+      "https://hexahoney.in",
+      "https://hexahoney-96aed.web.app",
+      "https://hexahoney-96aed.firebaseapp.com"
+    ]
+  },
+  async (request) => {
+    await requireCareerAdmin(request);
+    const since = Number(request.data?.since);
+    if (!Number.isFinite(since) || since < 0 || since > Date.now()) {
+      throw new HttpsError("invalid-argument", "Choose a valid date for the application count.");
+    }
+
+    const result = await admin.firestore()
+      .collection("careerApplications")
+      .where("jobId", "==", null)
+      .where("submittedAt", ">", admin.firestore.Timestamp.fromMillis(since))
+      .count()
+      .get();
+
+    return { count: result.data().count };
   }
-
-  const result = await admin.firestore()
-    .collection("careerApplications")
-    .where("jobId", "==", null)
-    .where("submittedAt", ">", admin.firestore.Timestamp.fromMillis(since))
-    .count()
-    .get();
-
-  return { count: result.data().count };
-});
+);
 
 exports.getCareerOpenings = onCall(async () => {
   const today = careerDateInThalassery();

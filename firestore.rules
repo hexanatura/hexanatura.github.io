@@ -144,6 +144,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Allow administrators to query orders across all user subcollections.
+    match /{path=**}/orders/{orderId} {
+      allow read: if isAdmin();
+    }
+
     // Admin Accounts
     match /admins/{adminId} {
       allow read, write: if isAdmin();

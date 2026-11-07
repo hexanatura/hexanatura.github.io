@@ -759,13 +759,6 @@ body {
     line-height: 1.3;
 }
 
-.sidebar-footer .dev-logo img {
-    width: 40px;
-    height: auto;
-    opacity: 0.95;
-    margin-bottom: 4px;
-}
-
 .main-content {
     overflow-y: visible;
     height: auto;
@@ -2385,9 +2378,6 @@ body {
                         </div>
                     </div>
                     <div class="sidebar-footer">
-                        <div class="dev-logo">
-                            <img src="your-logo.png" alt="Developer Logo">
-                        </div>
                         <div class="dev-text">
                             © 2025 Hexa Honey<br>
                             Developed by Hash.studio
@@ -3876,9 +3866,8 @@ function loadDashboardRecentOrders() {
     }
 
 window.dashboardOrdersListener = window.orderDataUtils.collection()
-  .where("paymentStatus", "in", ["paid", "completed"]) // Only show paid orders
   .orderBy("createdAt", "desc")
-  .limit(10)
+  .limit(200)
   .onSnapshot(snapshot => {
         const recentOrders = window.orderDataUtils.getUniqueOrders(snapshot)
             .filter(order => window.orderDataUtils.isPaidOrder(order.data))
