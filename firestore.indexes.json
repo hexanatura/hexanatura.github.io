@@ -58,7 +58,7 @@
     },
     {
       "collectionGroup": "careerApplications",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "jobId",

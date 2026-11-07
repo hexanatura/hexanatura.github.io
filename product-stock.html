@@ -16,10 +16,31 @@
       color: #64748b;
     }
     .product-stock-status {
-      min-height: 24px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
       margin-bottom: 12px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: #f8fafc;
       color: #475569;
       font-size: 14px;
+    }
+    .product-stock-status[data-state="success"] {
+      border-color: #86efac;
+      background: #f0fdf4;
+      color: #166534;
+    }
+    .product-stock-status[data-state="error"] {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .product-stock-status[data-state="saving"] {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
     }
     .product-stock-list {
       display: grid;
@@ -191,6 +212,14 @@
   const autoFreeShippingInput = document.getElementById("autoApplyFreeShipping");
   const saveSettingsButton = document.getElementById("saveStorefrontSettings");
 
+  function setStatus(message, state = "info", notify = false) {
+    status.textContent = message;
+    status.dataset.state = state;
+    if (notify && typeof window.showDashboardToast === "function") {
+      window.showDashboardToast(message, state === "error" ? "danger" : "success");
+    }
+  }
+
   function renderProduct(product, data = {}) {
     const row = document.createElement("div");
     row.className = "product-stock-row";
@@ -222,22 +251,22 @@
     savePrice.addEventListener("click", async () => {
       const nextPrice = Number(price.value);
       if (!Number.isFinite(nextPrice) || nextPrice < 0) {
-        status.textContent = `Enter a valid non-negative price for ${product.name}.`;
+        setStatus(`Enter a valid non-negative price for ${product.name}.`, "error", true);
         return;
       }
       savePrice.disabled = true;
-      status.textContent = `Saving price for ${product.name}…`;
+      setStatus(`Saving price for ${product.name}…`, "saving");
       try {
         await db.collection("products").doc(String(product.id)).set({
           price: nextPrice,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         savedPrice = nextPrice;
-        status.textContent = `${product.name} price saved as ₹${nextPrice.toFixed(2)}.`;
+        setStatus(`${product.name} price saved as ₹${nextPrice.toFixed(2)}.`, "success", true);
       } catch (error) {
         console.error(`Unable to update price for product ${product.id}:`, error);
         price.value = String(savedPrice);
-        status.textContent = `Could not save the price for ${product.name}. Check your connection and admin access, then try again.`;
+        setStatus(`Could not save the price for ${product.name}. Check your connection and admin access, then try again.`, "error", true);
       } finally {
         savePrice.disabled = false;
       }
@@ -245,18 +274,18 @@
     select.addEventListener("change", async () => {
       const nextInStock = select.value === "true";
       select.disabled = true;
-      status.textContent = `Saving ${product.name}…`;
+      setStatus(`Saving ${product.name}…`, "saving");
       try {
         await db.collection("products").doc(String(product.id)).set({
           inStock: nextInStock,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         savedInStock = nextInStock;
-        status.textContent = `${product.name} is now ${nextInStock ? "in stock" : "out of stock"}.`;
+        setStatus(`${product.name} is now ${nextInStock ? "in stock" : "out of stock"}.`, "success", true);
       } catch (error) {
         console.error(`Unable to update stock for product ${product.id}:`, error);
         select.value = String(savedInStock);
-        status.textContent = `Could not save ${product.name}. Check your connection and admin access, then try again.`;
+        setStatus(`Could not save ${product.name}. Check your connection and admin access, then try again.`, "error", true);
       } finally {
         select.disabled = false;
       }
@@ -275,10 +304,10 @@
         const data = snapshot.data();
         renderProduct(products[index], data || {});
       });
-      status.textContent = "Product prices and stock are loaded. Save each price or stock change.";
+      setStatus("Product prices and stock are loaded. Save each price or stock change.");
     } catch (error) {
       console.error("Unable to load product stock:", error);
-      status.textContent = "Could not load product stock. Check your connection and admin access, then reload this section.";
+      setStatus("Could not load product stock. Check your connection and admin access, then reload this section.", "error", true);
     }
   }
 
@@ -291,7 +320,7 @@
       autoFreeShippingInput.checked = settings.autoApplyFreeShipping !== false;
     } catch (error) {
       console.error("Unable to load delivery settings:", error);
-      status.textContent = "Could not load delivery settings. Check your connection and admin access.";
+      setStatus("Could not load delivery settings. Check your connection and admin access.", "error", true);
     }
   }
 
@@ -300,12 +329,12 @@
     const threshold = Number(thresholdInput.value);
     const fee = Number(deliveryFeeInput.value);
     if (!Number.isFinite(threshold) || threshold < 0 || !Number.isFinite(fee) || fee < 0) {
-      status.textContent = "Enter valid non-negative values for threshold and delivery fee.";
+      setStatus("Enter valid non-negative values for threshold and delivery fee.", "error", true);
       return;
     }
 
     saveSettingsButton.disabled = true;
-    status.textContent = "Saving delivery settings…";
+    setStatus("Saving delivery settings…", "saving");
     try {
       await db.collection("settings").doc("storefront").set({
         freeShippingThreshold: threshold,
@@ -313,10 +342,10 @@
         autoApplyFreeShipping: autoFreeShippingInput.checked,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
-      status.textContent = "Delivery and free-shipping settings saved.";
+      setStatus("Delivery and free-shipping settings saved.", "success", true);
     } catch (error) {
       console.error("Unable to save delivery settings:", error);
-      status.textContent = "Could not save delivery settings. Check your connection and admin access, then try again.";
+      setStatus("Could not save delivery settings. Check your connection and admin access, then try again.", "error", true);
     } finally {
       saveSettingsButton.disabled = false;
     }
