@@ -3893,9 +3893,7 @@ window.dashboardOrdersListener = window.orderDataUtils.collection()
                 label = label.replace(/-/g, ' ');
                 label = label.replace(/\b\w/g, l => l.toUpperCase());
 
-                // Use the orderNumber field from Firestore document
-                // If orderNumber doesn't exist, fall back to Firebase ID
-                const orderNum = o.orderNumber || o.orderNo || o.order_id || `#${order.id.substring(0, 8)}`;
+                const orderNum = o.orderId || o.orderNumber || o.orderNo || o.order_id || `#${order.id.substring(0, 8)}`;
                 
                 div.innerHTML = `
                     <div class="order-info">
