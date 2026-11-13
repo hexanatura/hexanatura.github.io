@@ -1442,6 +1442,7 @@ exports.createRazorpayOrder = onCall(
 );
 
 exports.testRazorpayConfig = require("firebase-functions/v2").https.onRequest(
+  { region: "asia-south1" },
   async (_req, res) => res.status(404).send("Not found")
 );
 
@@ -1895,6 +1896,7 @@ exports.resendOrderEmail = require("firebase-functions/v2").https.onCall(
 
 /* 🧪 TEST FUNCTION */
 exports.testEmailConfig = require("firebase-functions/v2").https.onRequest(
+  { region: "asia-south1" },
   async (_req, res) => res.status(404).send("Not found")
 );
 
