@@ -2,9 +2,9 @@
 
 ## Scope and assessment
 
-This follow-up reviewed the existing security findings and the local hardening changes in this repository. It covers the static site/client code, Firebase Cloud Functions, Firestore and Storage rules, payment integration, admin flows, dependency manifests, and locally available configuration. Production Firebase, payment-gateway, hosting, IAM, and backup environments were not accessed.
+This follow-up reviewed the existing security findings and the local hardening changes in this repository. It covers the static site/client code, Firebase Cloud Functions, Firestore and Storage rules, payment integration, admin flows, dependency manifests, and locally available configuration. Firebase Console and Secret Manager metadata were inspected read-only; provider credentials, payment-gateway accounts, IAM, backups, and production payment flows were not inspected.
 
-**Overall assessment: NOT READY FOR PRODUCTION.** A credential-bearing Functions environment file remains in local ignored storage, and its contents were present in repository history. Production credential rotation, history cleanup, deployment, and infrastructure checks remain outstanding. Local emulator coverage and dependency checks passed, but they do not establish production configuration or end-to-end payment security.
+**Overall assessment: NOT READY FOR PRODUCTION.** A credential-bearing Functions environment file remains in local ignored storage, and its contents were present in repository history. Hosting and Storage rules were deployed, and a new Firestore Rules version is visible in Firebase. The hardened Functions were not deployed because required Secret Manager entries are absent. Credential rotation, history cleanup, payment testing, and other infrastructure checks remain outstanding.
 
 ## Technologies and architecture inspected
 
@@ -13,7 +13,7 @@ This follow-up reviewed the existing security findings and the local hardening c
 - Node.js 22 Firebase Functions; functions are configured for `asia-south1`.
 - Razorpay payment order creation and webhook handling; Nodemailer-backed contact/review notifications.
 - Firebase Emulator Suite for local Firestore and Storage rules tests.
-- Firebase Hosting and deployed Firebase configuration could not be inspected from this local environment.
+- Firebase project `hexahoney-96aed`; Firestore database location `asia-south1`; Firebase Hosting, Cloud Storage, and Secret Manager were inspected through the signed-in console/CLI.
 
 ## 27-point checklist
 
@@ -60,6 +60,9 @@ This follow-up reviewed the existing security findings and the local hardening c
    - Required action: Run test-mode payment creation, success/failure/duplicate/mismatched webhook scenarios in an authorized staging project before production use.
 4. **MEDIUM — Full API and abuse-control coverage remains incomplete.** Rate-limit logic and validation were reviewed in code, but every endpoint, authentication-provider limit, and deployment-specific CORS origin was not exercised.
    - Required action: Run a staging endpoint/authentication/authorization/throttling matrix with test accounts.
+5. **HIGH — Hardened Functions are not deployed; required secrets are absent.** The updated Functions require `GMAIL_PASS`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`, which were not present in the inspected Secret Manager listing. The current deployed Functions list also lacks the new checkout/contact/review callables expected by the updated Hosting client.
+   - Impact: The newly deployed Hosting client may fail for checkout, contact, review, or admin flows until the matching Functions and parameter configuration are deployed.
+   - Required action: Rotate the exposed provider credentials, add new versions under the required Secret Manager names, provide the `GMAIL_EMAIL` and `RAZORPAY_KEY_ID` string parameters at deployment, then deploy Functions and run staging smoke tests. Secret values were not accessed.
 
 ### Issues fixed locally
 
@@ -89,7 +92,11 @@ This follow-up reviewed the existing security findings and the local hardening c
 - `npm outdated`: only the Firebase test SDK has a newer major available; upgrade deferred due to Node 24 requirement versus the project's Node 22 Functions runtime.
 - Gitleaks working-tree scan: detected the ignored local Functions environment file; no secret values were printed. Historical review confirmed the file in three revisions; the scanner also matched the public Firebase client API-key pattern.
 - JavaScript syntax checks, Firebase configuration JSON validation, Functions export loading, dashboard/reviews inline-script compilation, and `git diff --check`: passed.
-- No production credentials were read or printed, no production tests or changes were made, no deployment occurred, no admin bootstrap was executed, and no Git history was rewritten.
+- Commit `96fe3ab` was pushed to `main`; the GitHub Hosting workflow completed successfully. The public homepage returned HTTP 200.
+- A new 117-line Firestore rules version is visible in Firebase Console after the user's rules update; no rules were edited by the assistant in the console.
+- Storage rules compiled and deployed successfully to Firebase.
+- Functions were not deployed because the required secret names were absent from the inspected Secret Manager listing. No secret values were accessed or printed.
+- No production payment tests were run; no admin bootstrap was executed; no Git history was rewritten.
 
 ## Dependencies updated
 
@@ -99,11 +106,13 @@ Compatible direct/transitive dependency versions and lockfile entries were updat
 
 - Rotate/revoke the potentially exposed mail, payment, and webhook credentials with their respective providers; provision replacements securely.
 - Approve and coordinate any shared Git-history cleanup after rotation.
-- Provide authorized access to verify production Firebase project identity, deployed Functions/rules/Storage rules, IAM, Auth, Hosting HTTPS behavior, secret provisioning, and backups.
+- Rotate/revoke the potentially exposed mail, payment, and webhook credentials with their respective providers; provision new values in Secret Manager without sharing them in chat.
+- Add the required Firebase Secret Manager entries and provide the non-secret string parameters during Functions deployment.
 - Approve a staging Razorpay/Firebase project and test credentials for end-to-end payment and webhook testing.
-- Approve deployment of reviewed Functions and Firestore/Storage rules after staging verification.
+- Coordinate shared Git-history cleanup with repository collaborators.
+- Verify production IAM, Auth, Hosting HTTPS behavior, and backups.
 - Review/approve any admin UID before running the updated admin bootstrap.
 
 ## Production recommendation
 
-**NOT READY FOR PRODUCTION.** Do not treat the local test results as proof of production security. Resolve the exposed-credential risk, verify and deploy the hardened controls through an authorized release process, and complete staging payment/API testing and production configuration checks before reconsidering readiness.
+**NOT READY FOR PRODUCTION.** Hosting and Storage are deployed, and a new Firestore rules version is visible, but the matching hardened Functions are not deployed because their required secrets are absent. Rotate and provision credentials, deploy the Functions, verify checkout/contact/review behavior in staging, and complete the remaining production checks before reconsidering readiness.
