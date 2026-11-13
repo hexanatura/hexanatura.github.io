@@ -3681,7 +3681,17 @@ const LAST_OPEN = {
     // Review management variables
     let selectedReviewId = null;
     let dashboardReviews = [];
-    
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
+    }
+
     function loadDashboardRecentReviews() {
         const box = document.getElementById("dashboardRecentReviews");
         if (!box) return;
@@ -3710,12 +3720,12 @@ const LAST_OPEN = {
                     const isSelected = r.id === selectedReviewId;
 
                     html += `
-                        <div class="review-item fade-in ${isSelected ? 'selected' : ''}" data-id="${r.id}">
+                        <div class="review-item fade-in ${isSelected ? 'selected' : ''}" data-id="${escapeHtml(r.id)}">
                             <div class="review-header">
                                 <div class="reviewer-info">
                                     <div class="reviewer-avatar"><i class="fas fa-user"></i></div>
                                     <div class="reviewer-details">
-                                        <div class="reviewer-name">${r.userName}</div>
+                                        <div class="reviewer-name">${escapeHtml(r.userName)}</div>
                                         <div class="review-date">${date}</div>
                                     </div>
                                 </div>
@@ -3723,7 +3733,7 @@ const LAST_OPEN = {
                                     ${generateStars(r.rating)}
                                 </div>
                             </div>
-                            <div class="review-content">${r.reviewText}</div>
+                            <div class="review-content">${escapeHtml(r.reviewText)}</div>
                         </div>
                     `;
                 });
@@ -4472,12 +4482,12 @@ window.dashboardOrdersListener = window.orderDataUtils.collection()
                     <div class="order-info">
                         <div class="order-icon"><i class="fas fa-shopping-bag"></i></div>
                         <div class="order-details">
-                            <div class="order-id">${orderNum}</div>
+                            <div class="order-id"></div>
                             <div class="order-amount">₹${total}</div>
                         </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                        <div class="order-status ${statusClass(status)}">${label}</div>
+                        <div class="order-status ${statusClass(status)}"></div>
                         <div style="
                             color: #94a3b8;
                             font-size: 0.7rem;
@@ -4489,6 +4499,9 @@ window.dashboardOrdersListener = window.orderDataUtils.collection()
                         </div>
                     </div>
                 `;
+
+                div.querySelector(".order-id").textContent = String(orderNum);
+                div.querySelector(".order-status").textContent = label;
 
                 // Add click event to open order modal
                 div.addEventListener('click', function(e) {
@@ -5021,7 +5034,7 @@ function closeMobileMenu() {
         }
 
         try {
-            const tokenResult = await user.getIdTokenResult(true);
+            await window.careerFunctions.httpsCallable("checkAdminAccess")();
 
             if (loginModal) loginModal.style.display = "none";
             if (dashboardEl) dashboardEl.style.display = "block";
@@ -5035,8 +5048,15 @@ function closeMobileMenu() {
             initDashboard();
 
         } catch (err) {
-            console.error("Auth error:", err);
-            if (loginErrorEl) loginErrorEl.textContent = "Authentication error. Please try again.";
+            if (dashboardEl) dashboardEl.style.display = "none";
+            if (sidebarEl) sidebarEl.style.display = "none";
+            if (topHeaderEl) topHeaderEl.style.display = "none";
+            if (loginModal) loginModal.style.display = "flex";
+            if (loginErrorEl) {
+                loginErrorEl.textContent = err.code === "functions/permission-denied"
+                    ? "Administrator access is required."
+                    : "Unable to verify administrator access. Please try again.";
+            }
         }
     });
 

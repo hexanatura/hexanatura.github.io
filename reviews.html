@@ -631,6 +631,16 @@
         const cardsContainer = document.getElementById('rv-cards');
         let reviews = [];
         let currentReviewId = null;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
         
         // Toast function
         function showToast(message, type = 'success') {
@@ -727,6 +737,28 @@
             });
         }
         
+        document.addEventListener('click', event => {
+            if (!(event.target instanceof Element)) return;
+
+            const button = event.target.closest('[data-review-action]');
+            if (!button) return;
+
+            const actions = {
+                view: viewReview,
+                approve: approveReview,
+                reject: rejectReview,
+                delete: deleteReview
+            };
+            const action = actions[button.dataset.reviewAction];
+            const reviewId = button.dataset.reviewId;
+            if (!action || !reviewId) {
+                console.error('Invalid review action metadata');
+                return;
+            }
+
+            action(reviewId);
+        });
+
         // Render table (desktop)
         function renderTable(filteredReviews) {
             if(filteredReviews.length === 0) {
@@ -745,11 +777,11 @@
                     <td>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <div class="card-avatar">
-                                ${review.userName ? review.userName.charAt(0).toUpperCase() : 'U'}
+                                ${escapeHtml(review.userName ? review.userName.charAt(0).toUpperCase() : 'U')}
                             </div>
                             <div>
-                                <div style="font-weight: 500;">${review.userName || 'Unknown'}</div>
-                                <div style="font-size: 0.85rem; color: var(--muted);">${review.userLocation || ''}</div>
+                                <div style="font-weight: 500;">${escapeHtml(review.userName || 'Unknown')}</div>
+                                <div style="font-size: 0.85rem; color: var(--muted);">${escapeHtml(review.userLocation || '')}</div>
                             </div>
                         </div>
                     </td>
@@ -760,29 +792,29 @@
                     </td>
                     <td>
                         <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${review.reviewText || ''}
+                            ${escapeHtml(review.reviewText || '')}
                         </div>
                     </td>
-                    <td>${formatDate(review.createdAt)}</td>
+                    <td>${escapeHtml(formatDate(review.createdAt))}</td>
                     <td>
-                        <span class="status-badge status-${review.status || 'pending'}">
-                            ${review.status || 'pending'}
+                        <span class="status-badge status-${escapeHtml(review.status || 'pending')}">
+                            ${escapeHtml(review.status || 'pending')}
                         </span>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button class="action-btn view" onclick="viewReview('${review.id}')" title="View">
+                            <button class="action-btn view" data-review-action="view" data-review-id="${escapeHtml(review.id)}" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
                             ${review.status === 'pending' ? `
-                            <button class="action-btn approve" onclick="approveReview('${review.id}')" title="Approve">
+                            <button class="action-btn approve" data-review-action="approve" data-review-id="${escapeHtml(review.id)}" title="Approve">
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button class="action-btn reject" onclick="rejectReview('${review.id}')" title="Reject">
+                            <button class="action-btn reject" data-review-action="reject" data-review-id="${escapeHtml(review.id)}" title="Reject">
                                 <i class="fas fa-times"></i>
                             </button>
                             ` : ''}
-                            <button class="action-btn delete" onclick="deleteReview('${review.id}')" title="Delete">
+                            <button class="action-btn delete" data-review-action="delete" data-review-id="${escapeHtml(review.id)}" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -806,11 +838,11 @@
                 <div class="review-card">
                     <div class="card-header">
                         <div class="card-avatar">
-                            ${review.userName ? review.userName.charAt(0).toUpperCase() : 'U'}
+                            ${escapeHtml(review.userName ? review.userName.charAt(0).toUpperCase() : 'U')}
                         </div>
                         <div class="card-info">
-                            <h4>${review.userName || 'Unknown'}</h4>
-                            <p>${review.userLocation || ''}</p>
+                            <h4>${escapeHtml(review.userName || 'Unknown')}</h4>
+                            <p>${escapeHtml(review.userLocation || '')}</p>
                         </div>
                     </div>
                     
@@ -820,33 +852,33 @@
                             <span class="rating-stars">${generateStars(review.rating || 0)}</span>
                         </div>
                         <div style="margin-bottom: 8px;">
-                            <strong>Review:</strong> ${review.reviewText || ''}
+                            <strong>Review:</strong> ${escapeHtml(review.reviewText || '')}
                         </div>
                     </div>
                     
                     <div class="card-meta">
                         <div>
-                            <span class="status-badge status-${review.status || 'pending'}">
-                                ${review.status || 'pending'}
+                            <span class="status-badge status-${escapeHtml(review.status || 'pending')}">
+                                ${escapeHtml(review.status || 'pending')}
                             </span>
                             <div style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">
-                                ${formatDate(review.createdAt)}
+                                ${escapeHtml(formatDate(review.createdAt))}
                             </div>
                         </div>
                         
                         <div class="action-buttons">
-                            <button class="action-btn view" onclick="viewReview('${review.id}')" title="View">
+                            <button class="action-btn view" data-review-action="view" data-review-id="${escapeHtml(review.id)}" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
                             ${review.status === 'pending' ? `
-                            <button class="action-btn approve" onclick="approveReview('${review.id}')" title="Approve">
+                            <button class="action-btn approve" data-review-action="approve" data-review-id="${escapeHtml(review.id)}" title="Approve">
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button class="action-btn reject" onclick="rejectReview('${review.id}')" title="Reject">
+                            <button class="action-btn reject" data-review-action="reject" data-review-id="${escapeHtml(review.id)}" title="Reject">
                                 <i class="fas fa-times"></i>
                             </button>
                             ` : ''}
-                            <button class="action-btn delete" onclick="deleteReview('${review.id}')" title="Delete">
+                            <button class="action-btn delete" data-review-action="delete" data-review-id="${escapeHtml(review.id)}" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -867,11 +899,11 @@
                 <div style="display: grid; gap: 16px;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div class="card-avatar" style="width: 48px; height: 48px; font-size: 1.2rem;">
-                            ${review.userName ? review.userName.charAt(0).toUpperCase() : 'U'}
+                            ${escapeHtml(review.userName ? review.userName.charAt(0).toUpperCase() : 'U')}
                         </div>
                         <div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">${review.userName || 'Unknown'}</div>
-                            <div style="color: var(--muted);">${review.userLocation || ''}</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">${escapeHtml(review.userName || 'Unknown')}</div>
+                            <div style="color: var(--muted);">${escapeHtml(review.userLocation || '')}</div>
                         </div>
                     </div>
                     
@@ -882,8 +914,8 @@
                         </div>
                         <div>
                             <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 4px;">Status</div>
-                            <span class="status-badge status-${review.status || 'pending'}">
-                                ${review.status || 'pending'}
+                            <span class="status-badge status-${escapeHtml(review.status || 'pending')}">
+                                ${escapeHtml(review.status || 'pending')}
                             </span>
                         </div>
                     </div>
@@ -891,13 +923,13 @@
                     <div>
                         <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 8px;">Review Text</div>
                         <div style="padding: 16px; background: var(--light); border-radius: var(--radius); line-height: 1.6;">
-                            ${review.reviewText || 'No review text provided'}
+                            ${escapeHtml(review.reviewText || 'No review text provided')}
                         </div>
                     </div>
                     
                     <div>
                         <div style="font-size: 0.9rem; color: var(--muted);">Date Created</div>
-                        <div>${formatDate(review.createdAt)}</div>
+                        <div>${escapeHtml(formatDate(review.createdAt))}</div>
                     </div>
                 </div>
             `;

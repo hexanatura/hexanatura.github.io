@@ -378,20 +378,30 @@ function displayReview(review) {
 const reviewDate = review.createdAt ? formatReviewDate(review.createdAt) : '—';
     reviewCard.innerHTML = `
         <div class="customer-info">
-            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=5f2b27&color=fff" alt="Customer photo" class="customer-avatar">
+            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName || '')}&background=5f2b27&color=fff" alt="Customer photo" class="customer-avatar">
             <div>
-                <div class="customer-name">${review.userName}</div>
-                <div class="customer-location">${review.userLocation || 'Happy Customer'}</div>
+                <div class="customer-name">${escapeHtml(review.userName || 'Customer')}</div>
+                <div class="customer-location">${escapeHtml(review.userLocation || 'Happy Customer')}</div>
             </div>
         </div>
         <div class="rating">
             ${generateStarRating(review.rating)}
         </div>
-        <p class="review-text">${review.reviewText}</p>
-        <div class="review-date">${reviewDate}</div>
+        <p class="review-text">${escapeHtml(review.reviewText || '')}</p>
+        <div class="review-date">${escapeHtml(reviewDate)}</div>
     `;
     
     reviewsContainer.appendChild(reviewCard);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
 }
 
 // Generate star rating HTML
@@ -681,18 +691,12 @@ if (submitReview) {
             return;
         }
         
-        const review = {
-            userName: userName,
-            userLocation: userLocation,
-            rating: parseInt(rating.value),
-            reviewText: reviewText,
-            status: 'pending', // All user reviews start as pending
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            userId: currentUser.uid
-        };
-        
-
-        db.collection('reviews').add(review)
+        window.functions.httpsCallable('submitReview')({
+            userName,
+            userLocation,
+            rating: Number(rating.value),
+            reviewText
+        })
             .then(() => {
                 alert('Thank you for your review!');
                 if (reviewModal) {

@@ -566,12 +566,6 @@ function applyPromoDiscount(promoDetails, promoCode) {
     // Update totals
     updateTotals();
     
-    // Update usage count in Firebase (don't wait for it)
-    if (typeof db !== 'undefined') {
-        db.collection('promoCodes').doc(promoDetails.id || promoCode).update({
-            usedCount: firebase.firestore.FieldValue.increment(1)
-        }).catch(err => console.error('Failed to update usage count:', err));
-    }
 }
 
 // Modified validatePromoCode to handle silent validation
@@ -1192,12 +1186,6 @@ function validateIndianPhoneNumber(phone) {
     return phoneRegex.test(cleanedPhone);
 }
 
-// Generate order ID
-function generateOrderId() {
-    const randomNumber = Math.floor(10000 + Math.random() * 90000);
-    return `NA-${randomNumber}`;
-}
-
 // Enhanced updateOrderSummary function
 function updateOrderSummary() {
     const orderItems = document.getElementById('orderItems');
@@ -1408,76 +1396,6 @@ async function processCheckout() {
         const phone = phoneInput.length === 10 ? phoneInput : '';
         const isDefaultAddress = document.getElementById('defaultAddress')?.checked || false;
         
-        console.log('Form data collected:', { email, firstName, lastName, phone });
-        
-        // 2. Calculate final amount
-        const finalAmount = Math.max(0, window.originalTotal - window.currentDiscount);
-        
-        if (finalAmount <= 0) {
-            throw new Error('Order amount must be greater than 0');
-        }
-        
-        // 3. Generate order ID
-        const orderId = generateOrderId();
-        
-        // 4. Create TEMPORARY ORDER (not final order)
-        const tempOrderData = {
-            orderId: orderId,
-            email: email,
-            customerName: `${firstName} ${lastName}`,
-            customerEmail: email,
-            customerPhone: '+91 ' + phone,
-            shippingAddress: {
-                firstName: firstName,
-                lastName: lastName,
-                address: address,
-                apartment: apartment,
-                city: city,
-                state: state,
-                zipCode: zipCode,
-                phone: '+91 ' + phone,
-                country: 'India'
-            },
-            items: cartProducts.map(item => {
-                const product = products.find(p => p.id === item.id);
-                return {
-                    productId: item.id,
-                    name: product ? product.name : 'Unknown Product',
-                    weight: product ? product.weight : '',
-                    price: product ? product.price : 0,
-                    quantity: item.quantity,
-                    image: product ? product.image : '',
-                    subtotal: (product ? product.price : 0) * item.quantity
-                };
-            }),
-            subtotal: window.originalTotal,
-            discount: window.currentDiscount,
-            shipping: 0,
-            total: finalAmount,
-            status: 'payment_initiated',
-            paymentStatus: 'initiated',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            // Add 30 minutes expiry
-            expiresAt: firebase.firestore.Timestamp.fromDate(
-                new Date(Date.now() + 30 * 60 * 1000)
-            )
-        };
-        
-        // Add promo code if applied
-        if (window.appliedPromoCode) {
-            tempOrderData.promoCode = window.appliedPromoCode;
-            tempOrderData.promoDiscount = window.currentDiscount;
-        }
-        
-        // Add user info if logged in
-        if (currentUser) {
-            tempOrderData.userId = currentUser.uid;
-            tempOrderData.userEmail = currentUser.email;
-            tempOrderData.userName = currentUser.displayName || `${firstName} ${lastName}`;
-        }
-        
-        console.log('Creating temp order:', tempOrderData);
-        
         // Save address to profile if needed
         if (currentUser && isDefaultAddress) {
             console.log('Saving address to profile...');
@@ -1486,18 +1404,26 @@ async function processCheckout() {
             );
         }
         
-        // 5. Save temp order to Firestore
-        const tempOrderRef = await db.collection('tempOrders').add(tempOrderData);
-        const tempOrderId = tempOrderRef.id;
+        const createCheckout = window.functions.httpsCallable('createCheckout');
+        const checkoutResponse = await createCheckout({
+            email,
+            firstName,
+            lastName,
+            address,
+            apartment,
+            city,
+            state,
+            zipCode,
+            phone,
+            items: cartProducts.map(item => ({ productId: item.id, quantity: item.quantity })),
+            promoCode: window.appliedPromoCode || null
+        });
+        const tempOrderData = checkoutResponse.data;
+        const tempOrderId = tempOrderData.tempOrderId;
         
-        console.log('Temp order created:', tempOrderId);
+        console.log('Secure checkout created.');
         
- // Format amount to ensure 2 decimal places
-const finalAmountWithDecimals = Math.round(finalAmount * 100) / 100;
-console.log('Final amount with decimals:', finalAmountWithDecimals);
-
-// 6. Initialize Razorpay payment with temp order ID
-await initializeRazorpayPayment(tempOrderData, finalAmountWithDecimals, tempOrderId);
+        await initializeRazorpayPayment(tempOrderData, tempOrderId);
         
     } catch (error) {
         console.error('Checkout error:', error);
@@ -1507,7 +1433,7 @@ await initializeRazorpayPayment(tempOrderData, finalAmountWithDecimals, tempOrde
         isProcessingPayment = false;
     }
 }
-async function initializeRazorpayPayment(orderData, amount, tempOrderId) {
+async function initializeRazorpayPayment(orderData, tempOrderId) {
     console.log('Initializing Razorpay payment for temp order:', tempOrderId);
     
     try {
@@ -1515,48 +1441,33 @@ async function initializeRazorpayPayment(orderData, amount, tempOrderId) {
         
         try {
             // Try Firebase Function
-            const createOrder = firebase.functions().httpsCallable('createRazorpayOrder');
-            createOrderResponse = await createOrder({
-                amount: amount,
-                currency: 'INR',
-                receipt: `receipt_${Date.now()}`,
-                notes: {
-                    orderId: orderData.orderId,
-                    tempOrderId: tempOrderId,
-                    source: 'checkout'
-                }
-            });
+            const createOrder = window.functions.httpsCallable('createRazorpayOrder');
+            createOrderResponse = await createOrder({ tempOrderId: tempOrderId });
             
             console.log('Firebase Function response:', createOrderResponse.data);
             
         } catch (firebaseError) {
-            console.warn('Firebase Function failed:', firebaseError);
-            createOrderResponse = await createRazorpayOrderDirect(amount, orderData.orderId, tempOrderId);
+            console.error('Unable to initialize payment with the secure payment service:', firebaseError);
+            throw new Error('Payment service unavailable. Please try again.');
         }
         
+        createOrderResponse = createOrderResponse.data;
         if (!createOrderResponse || !createOrderResponse.orderId) {
             throw new Error('Failed to create Razorpay order');
         }
         
         console.log('Razorpay order created:', createOrderResponse.orderId);
         
-        // Update temp order with Razorpay order ID
-        await db.collection('tempOrders').doc(tempOrderId).update({
-            razorpayOrderId: createOrderResponse.orderId,
-            razorpayKey: createOrderResponse.razorpayKey,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
         const options = {
             key: createOrderResponse.razorpayKey,
-            amount: Math.round(amount * 100), // FIX 1: Proper rounding for decimals
-            currency: "INR",
+            amount: createOrderResponse.amount,
+            currency: createOrderResponse.currency,
             description: `Order ${orderData.orderId}`,
             order_id: createOrderResponse.orderId,
             
             handler: async function(response) {
                 console.log('Razorpay payment response:', response);
-                await processPaymentSuccess(orderData, tempOrderId, response);
+                await processPaymentSuccess(tempOrderId, response);
             },
             
             prefill: {
@@ -1594,119 +1505,29 @@ async function initializeRazorpayPayment(orderData, amount, tempOrderId) {
     }
 }
 
-async function createRazorpayOrderDirect(amount, orderId, tempOrderId) {
-  try {
-    console.log('Trying direct API call...');
-    
-    const functionURL = 'https://asia-south1-hexahoney-96aed.cloudfunctions.net/createRazorpayOrder';
-    
-    const response = await fetch(functionURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      body: JSON.stringify({
-        data: {
-          amount: amount,
-          currency: 'INR',
-          receipt: `receipt_${Date.now()}`,
-          notes: {
-            orderId: orderId,
-            tempOrderId: tempOrderId, // Add temp order ID
-            source: 'direct_fallback'
-          }
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Direct API success:', data);
-    
-    return {
-      success: true,
-      orderId: data.result.orderId,
-      amount: data.result.amount,
-      currency: data.result.currency,
-      razorpayKey: data.result.razorpayKey
-    };
-    
-  } catch (error) {
-    console.error('Direct API failed:', error);
-
-    throw new Error('Payment service unavailable. Please try again.');
-  }
-}
-
-async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
+async function processPaymentSuccess(tempOrderId, razorpayResponse) {
     console.log('Processing payment success for temp order:', tempOrderId);
     
     try {
-        // 1. Get the temp order
-        const tempOrderDoc = await db.collection('tempOrders').doc(tempOrderId).get();
-        const tempOrderData = tempOrderDoc.data();
-        
-        if (!tempOrderData) {
-            throw new Error('Temp order not found');
-        }
-        
-        // 2. Create final order in Firestore
-        const finalOrderData = {
-            ...tempOrderData,
-            status: 'ordered',
-            paymentStatus: 'paid',
+        const finalizePayment = window.functions.httpsCallable('verifyPayment');
+        const result = await finalizePayment({
+            tempOrderId,
             razorpayPaymentId: razorpayResponse.razorpay_payment_id,
             razorpayOrderId: razorpayResponse.razorpay_order_id,
-            razorpaySignature: razorpayResponse.razorpay_signature,
-            paidAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
+            razorpaySignature: razorpayResponse.razorpay_signature
+        });
+        const finalOrderData = result.data.order;
         
-        // Remove expiresAt from final order
-        delete finalOrderData.expiresAt;
-        
-        console.log('Creating final order from temp order:', tempOrderId);
-        
-        // 3. Create final order (this will trigger onOrderCreated)
-        const orderRef = await db.collection('orders').add(finalOrderData);
-        const finalOrderId = orderRef.id;
-        
-        console.log('✅ Final order created:', finalOrderId);
-        
-        let profileOrderSaved = false;
-        if (currentUser) {
-            try {
-                await db.collection('users').doc(currentUser.uid)
-                    .collection('orders').doc(finalOrderId).set({
-                        ...finalOrderData,
-                        id: finalOrderId
-                    });
-                profileOrderSaved = true;
-            } catch (profileError) {
-                console.error('Order confirmed, but saving it to the customer profile failed:', profileError);
-            }
-        }
-        
-        // 5. Delete temp order
-        await db.collection('tempOrders').doc(tempOrderId).delete();
-        console.log('🗑️ Temp order deleted:', tempOrderId);
-        
-        // 6. Clear cart
+        // Clear cart after the trusted server confirms payment and creates the order.
         orderSuccessFlowActive = true;
         await clearCartAfterOrder();
         
         // 7. Reset payment processing flag
         isProcessingPayment = false;
         
-        // 8. Show success popup
         const updatedOrderData = {
             ...finalOrderData,
-            id: finalOrderId,
-            profileOrderSaved
+            profileOrderSaved: result.data.profileOrderSaved
         };
         
         if (typeof showOrderSuccessPopup === 'function') {
@@ -1719,18 +1540,6 @@ async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
         
     } catch (error) {
         console.error('Error processing payment success:', error);
-        
-        // Update temp order with error
-        try {
-            await db.collection('tempOrders').doc(tempOrderId).update({
-                paymentStatus: 'failed',
-                paymentError: error.message,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (updateError) {
-            console.error('Failed to update temp order:', updateError);
-        }
-        
         showNotification('Error completing order. Please contact support.', 'error');
         isProcessingPayment = false;
         throw error;
@@ -1739,22 +1548,6 @@ async function processPaymentSuccess(orderData, tempOrderId, razorpayResponse) {
 
 async function handlePaymentFailure(response, tempOrderId) {
     console.error('Payment failed for temp order:', tempOrderId);
-    
-    // Update temp order with failed status
-    if (tempOrderId && db) {
-        try {
-            await db.collection('tempOrders').doc(tempOrderId).update({
-                paymentStatus: 'failed',
-                paymentError: response.error,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log('Temp order marked as failed:', tempOrderId);
-            
-        } catch (error) {
-            console.error('Error updating failed payment:', error);
-        }
-    }
     
     // Show error to user
     showNotification(`Payment failed: ${response.error.description}`, 'error');
@@ -1784,20 +1577,6 @@ function handlePaymentError(error, orderDocId) {
 async function handlePaymentCancellation(tempOrderId) {
     console.log('Payment cancelled for temp order:', tempOrderId);
     
-    // Update temp order status
-    if (tempOrderId && db) {
-        try {
-            await db.collection('tempOrders').doc(tempOrderId).update({
-                paymentStatus: 'cancelled',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log('Temp order marked as cancelled');
-        } catch (error) {
-            console.error('Error updating cancelled temp order:', error);
-        }
-    }
-    
     // Reset button state
     const checkoutBtn = document.querySelector('.checkout-btn');
     if (checkoutBtn) {
@@ -1808,31 +1587,6 @@ async function handlePaymentCancellation(tempOrderId) {
     isProcessingPayment = false;
 }
 
-
-// Enhanced saveOrderToFirestore function
-async function saveOrderToFirestore(orderData) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            // Save to main orders collection
-            const orderRef = await db.collection('orders').add(orderData);
-            console.log('Order saved to main collection:', orderRef.id);
-            
-            // Save to user's orders if logged in
-            if (currentUser) {
-                await db.collection('users').doc(currentUser.uid).collection('orders').doc(orderRef.id).set({
-                    ...orderData,
-                    id: orderRef.id
-                }, { merge: true });
-                console.log('Order saved to user collection:', orderRef.id);
-            }
-            
-            resolve(orderRef);
-        } catch (error) {
-            console.error('Error saving order:', error);
-            reject(error);
-        }
-    });
-}
 
 // Enhanced clearCartAfterOrder function
 async function clearCartAfterOrder() {

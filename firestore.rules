@@ -12,43 +12,28 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuth() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    function isPaymentUpdate() {
-      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
-        'paymentStatus', 'razorpayPaymentId', 'razorpayOrderId', 'razorpaySignature',
-        'paidAt', 'updatedAt', 'status', 'paymentMethod', 'paymentBank', 'paymentCardId', 'paymentWallet'
-      ]);
-    }
-
-    function isEmailVerificationUpdate() {
-      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
-        'successEmailSent', 'successEmailSentAt', 'failureEmailSent', 'failureEmailSentAt',
-        'emailResentAt', 'emailResentCount', 'updatedAt'
-      ]);
+      return isAuth() &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.admin == true;
     }
 
     // Promo Codes
     match /promoCodes/{promoId} {
       allow read: if true;
       allow create: if isAdmin();
-      allow update: if isAdmin() || (isAuth() &&
-        request.resource.data.diff(resource.data).changedKeys().hasOnly(['usedCount']) &&
-        request.resource.data.usedCount == resource.data.usedCount + 1);
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     // Reviews
     match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if isAuth();
+      allow read: if isAdmin() || resource.data.status == 'approved';
+      allow create: if isAdmin();
       allow update, delete: if isAdmin();
     }
 
     // Contact Submissions
     match /contactSubmissions/{id} {
-      allow create: if true;
+      allow create: if isAdmin();
       allow read, update, delete: if isAdmin();
     }
 
@@ -74,7 +59,7 @@ service cloud.firestore {
       allow create: if isAuth() && isOwner(userId);
       allow read: if isAdmin() || isOwner(userId);
       allow update: if isAdmin() || (isOwner(userId) &&
-        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'displayName', 'phone', 'address', 'updatedAt', 'lastLoginAt', 'preferences'
         ]));
       allow delete: if isAdmin();
@@ -82,11 +67,8 @@ service cloud.firestore {
       // User Orders
       match /orders/{orderId} {
         allow read: if isAdmin() || isOwner(userId);
-        allow create: if isOwner(userId) &&
-          request.resource.data.keys().hasAll(['items', 'total', 'createdAt']) &&
-          request.resource.data.total is number &&
-          request.resource.data.total >= 0;
-        allow update: if isAdmin() || (isOwner(userId) && isPaymentUpdate());
+        allow create: if false;
+        allow update: if isAdmin();
         allow delete: if isAdmin();
       }
 
@@ -98,7 +80,7 @@ service cloud.firestore {
             'label', 'name', 'address', 'phone', 'pincode', 'city', 'state', 'country', 'createdAt', 'isDefault'
           ]);
         allow update: if isOwner(userId) &&
-          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'label', 'name', 'address', 'phone', 'pincode', 'city', 'state', 'country', 'updatedAt', 'isDefault'
           ]);
         allow delete: if isOwner(userId) || isAdmin();
@@ -107,41 +89,20 @@ service cloud.firestore {
 
     // Temporary Orders (Guest Checkout) - UPDATED
     match /tempOrders/{tempOrderId} {
-      allow read: if isAdmin() || (isAuth() && request.auth.token.email == resource.data.email);
-      allow create: if
-        request.resource.data.email != null &&
-        request.resource.data.total is number &&
-        request.resource.data.total > 0 &&
-        request.resource.data.status in ['payment_initiated', 'pending'] &&
-        request.resource.data.createdAt is timestamp &&
-        request.resource.data.orderId != null;
-      allow update: if isAdmin() ||
-        request.resource.data.diff(resource.data).changedKeys().hasOnly([
-          'paymentStatus', 'razorpayOrderId', 'razorpayPaymentId', 'razorpaySignature',
-          'status', 'updatedAt', 'paymentError', 'paymentAttempts'
-        ]);
-      allow delete: if isAdmin() ||
-        (request.resource == null && resource.data.expiresAt != null && request.time > resource.data.expiresAt);
+      allow read, write: if false;
     }
 
-    // Global Orders - UPDATED
+    // Global orders contain customer and payment data; access is server-managed.
     match /orders/{orderId} {
-      allow read: if true;
-      allow create: if
-        request.resource.data.paymentStatus in ['paid', 'completed'] &&
-        request.resource.data.total is number &&
-        request.resource.data.total > 0 &&
-        request.resource.data.orderId != null;
-      allow update:
-        if isAdmin() ||
-        isPaymentUpdate() ||
-        isEmailVerificationUpdate() ||
-        (!isAuth() && resource.data.email == request.resource.data.email &&
-          (isPaymentUpdate() || isEmailVerificationUpdate())) ||
-        (isAdmin() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-          'status', 'shippingStatus', 'trackingNumber', 'updatedAt', 'notes', 'adminNotes'
-        ]));
-      allow delete: if isAdmin();
+      allow read, write: if isAdmin();
+    }
+
+    match /orderTrackingLimits/{limitId} {
+      allow read, write: if false;
+    }
+
+    match /reviewSubmissionLimits/{limitId} {
+      allow read, write: if false;
     }
 
     // Allow administrators to query orders across all user subcollections.
@@ -157,10 +118,7 @@ service cloud.firestore {
     // Activity Log
     match /activities/{activityId} {
       allow read: if isAdmin();
-      allow create: if isAdmin() || (
-        request.resource.data.type in ['PROMO_USED', 'PROMO_USAGE_LIMIT_REACHED'] &&
-        request.resource.data.keys().hasAll(['type', 'timestamp'])
-      );
+      allow create: if isAdmin();
       allow update, delete: if false;
     }
 

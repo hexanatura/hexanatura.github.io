@@ -1,32 +1,195 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineString } = require("firebase-functions/params");
-const admin = require("firebase-admin");
+const { defineString, defineSecret } = require("firebase-functions/params");
+const { initializeApp } = require("firebase-admin/app");
+const { FieldValue, getFirestore, Timestamp } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
 setGlobalOptions({ region: "asia-south1" });
-admin.initializeApp();
+initializeApp();
 
 /* ===== SIMPLE PARAMS SETUP ===== */
 const GMAIL_EMAIL = defineString("GMAIL_EMAIL");
-const GMAIL_PASS = defineString("GMAIL_PASS");
+const GMAIL_PASS = defineSecret("GMAIL_PASS");
 const RAZORPAY_KEY_ID = defineString("RAZORPAY_KEY_ID");
-const RAZORPAY_KEY_SECRET = defineString("RAZORPAY_KEY_SECRET");
-const RAZORPAY_WEBHOOK_SECRET = defineString("RAZORPAY_WEBHOOK_SECRET");
+const RAZORPAY_KEY_SECRET = defineSecret("RAZORPAY_KEY_SECRET");
+const RAZORPAY_WEBHOOK_SECRET = defineSecret("RAZORPAY_WEBHOOK_SECRET");
 
 const ADMIN_EMAIL = "hexanatura.info@gmail.com";
 const DASHBOARD_URL = "https://www.hexahoney.in/dashboard.html";
 const SITE_URL = "https://www.hexahoney.in/";
 const TRACK_URL = "https://www.hexahoney.in/trackorder.html";
+const SITE_CORS_ORIGINS = [
+  "https://www.hexahoney.in",
+  "https://hexahoney.in",
+  "https://hexahoney-96aed.web.app",
+  "https://hexahoney-96aed.firebaseapp.com"
+];
+const DEFAULT_PRODUCT_PRICES = {
+  "1": 420,
+  "2": 230,
+  "3": 65,
+  "4": 40,
+  "5": 370,
+  "6": 200
+};
+const DEFAULT_PRODUCTS = {
+  "1": { name: "Natura AGMARK Honey - 1 kg Glass Pack", weight: "1Kg" },
+  "2": { name: "Natura AGMARK Honey - 500 g Glass Pack", weight: "500g" },
+  "3": { name: "Natura AGMARK Honey - 100 g Glass Pack", weight: "100g" },
+  "4": { name: "Natura AGMARK Honey - 50 g Glass Pack", weight: "50g" },
+  "5": { name: "Natura AGMARK Honey - 1 kg PET Pack", weight: "1Kg" },
+  "6": { name: "Natura AGMARK Honey - 500 g PET Pack", weight: "500g" }
+};
+
+async function enforceIpRateLimit(request, idPrefix, maxAttempts, windowMs, message) {
+  const ipAddress = request.rawRequest.ip;
+  if (!ipAddress) {
+    throw new HttpsError("failed-precondition", "Unable to verify this request.");
+  }
+
+  const limitId = idPrefix + crypto.createHash("sha256").update(ipAddress).digest("hex");
+  const limitRef = getFirestore().collection("orderTrackingLimits").doc(limitId);
+  const now = Timestamp.now();
+  await getFirestore().runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(limitRef);
+    const data = snapshot.data() || {};
+    const windowStartedAt = data.windowStartedAt?.toMillis?.() || 0;
+    const attempts = windowStartedAt > now.toMillis() - windowMs ? data.attempts || 0 : 0;
+    if (attempts >= maxAttempts) {
+      throw new HttpsError("resource-exhausted", message);
+    }
+    transaction.set(limitRef, {
+      windowStartedAt: windowStartedAt > now.toMillis() - windowMs ? data.windowStartedAt : now,
+      attempts: attempts + 1,
+      updatedAt: now
+    });
+  });
+}
+
+const {
+  deleteTempOrderAndReleasePromo,
+  hasPromoUsageAvailable,
+  isPromoExpired,
+  reservePromoUse
+} = require("./promoReservations");
+
+async function priceCheckoutOrder(tempOrder, db) {
+  if (!Array.isArray(tempOrder.items) || !tempOrder.items.length || tempOrder.items.length > 30) {
+    throw new HttpsError("invalid-argument", "Checkout items are invalid.");
+  }
+
+  const pricedItems = await Promise.all(tempOrder.items.map(async (item) => {
+    const productId = String(item?.productId ?? "");
+    const quantity = item?.quantity;
+    if (!/^\d{1,8}$/.test(productId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      throw new HttpsError("invalid-argument", "Checkout items are invalid.");
+    }
+
+    const productSnapshot = await db.collection("products").doc(productId).get();
+    const product = productSnapshot.data() || {};
+    if (product.inStock === false) {
+      throw new HttpsError("failed-precondition", "An item in your cart is no longer available.");
+    }
+
+    const price = Number.isFinite(product.price) ? product.price : DEFAULT_PRODUCT_PRICES[productId];
+    if (!Number.isFinite(price) || price < 0) {
+      throw new HttpsError("failed-precondition", "An item in your cart is unavailable.");
+    }
+    const priceCents = Math.round(price * 100);
+    return {
+      productId,
+      name: typeof product.name === "string"
+        ? product.name.slice(0, 200)
+        : DEFAULT_PRODUCTS[productId]?.name || "Product",
+      weight: typeof product.weight === "string"
+        ? product.weight.slice(0, 50)
+        : DEFAULT_PRODUCTS[productId]?.weight || "",
+      image: "",
+      price: priceCents / 100,
+      quantity,
+      subtotal: priceCents * quantity / 100
+    };
+  }));
+  const subtotalCents = pricedItems.reduce((sum, item) => sum + Math.round(item.price * 100) * item.quantity, 0);
+
+  const settingsSnapshot = await db.collection("settings").doc("storefront").get();
+  const settings = settingsSnapshot.data() || {};
+  const freeShippingThreshold = Number.isFinite(settings.freeShippingThreshold)
+    ? Math.max(0, settings.freeShippingThreshold)
+    : 299;
+  const deliveryFee = Number.isFinite(settings.deliveryFee) ? Math.max(0, settings.deliveryFee) : 59;
+  let shippingCents = settings.autoApplyFreeShipping !== false &&
+    subtotalCents >= Math.round(freeShippingThreshold * 100)
+    ? 0
+    : Math.round(deliveryFee * 100);
+
+  let discountCents = 0;
+  let promoCodeId = null;
+  const promoCode = typeof tempOrder.promoCode === "string"
+    ? tempOrder.promoCode.trim().toUpperCase()
+    : "";
+  if (promoCode) {
+    let promoSnapshot = await db.collection("promoCodes")
+      .where("code", "==", promoCode)
+      .limit(1)
+      .get();
+    let promoDocument = promoSnapshot.docs[0];
+    if (!promoDocument) {
+      const byId = await db.collection("promoCodes").doc(promoCode).get();
+      if (byId.exists) promoDocument = byId;
+    }
+    const promo = promoDocument?.data();
+    const validUntil = promo?.validUntil;
+    const promoExpired = isPromoExpired(validUntil, careerDateInThalassery());
+    if (!promo || promo.active !== true ||
+        promoExpired ||
+        (Number(promo.minOrder) > 0 && subtotalCents < Math.round(Number(promo.minOrder) * 100)) ||
+        (!tempOrder.promoReserved && !hasPromoUsageAvailable(promo))) {
+      throw new HttpsError("failed-precondition", "The promo code is no longer valid.");
+    }
+
+    const type = promo.type || "fixed";
+    if (type === "shipping") {
+      shippingCents = 0;
+    } else if (type === "percentage" && Number.isFinite(promo.value) && promo.value > 0) {
+      discountCents = Math.round((subtotalCents + shippingCents) * (promo.value / 100));
+      if (Number.isFinite(promo.maxDiscount) && promo.maxDiscount > 0) {
+        discountCents = Math.min(discountCents, Math.round(promo.maxDiscount * 100));
+      }
+    } else if (type === "fixed" && Number.isFinite(promo.value) && promo.value > 0) {
+      discountCents = Math.min(Math.round(promo.value * 100), subtotalCents + shippingCents);
+    } else if (type !== "shipping") {
+      throw new HttpsError("failed-precondition", "The promo code is not configured correctly.");
+    }
+    promoCodeId = promoDocument.id;
+  }
+
+  const totalCents = subtotalCents + shippingCents - discountCents;
+  if (!Number.isSafeInteger(totalCents) || totalCents <= 0) {
+    throw new HttpsError("failed-precondition", "Checkout total must be greater than zero.");
+  }
+
+  return {
+    items: pricedItems,
+    subtotal: subtotalCents / 100,
+    shipping: shippingCents / 100,
+    discount: discountCents / 100,
+    total: totalCents / 100,
+    promoCode: promoCode || null,
+    promoCodeId
+  };
+}
 
 async function requireCareerAdmin(request) {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Sign in as an administrator to continue.");
   }
 
-  const adminSnapshot = await admin.firestore()
+  const adminSnapshot = await getFirestore()
     .collection("admins")
     .doc(request.auth.uid)
     .get();
@@ -126,16 +289,146 @@ function isValidEmail(email) {
          !trimmed.endsWith('.'); // No dot at end
 }
 
+exports.submitContactMessage = onCall(
+  {
+    region: "asia-south1",
+    cors: SITE_CORS_ORIGINS,
+    maxInstances: 5
+  },
+  async (request) => {
+    await enforceIpRateLimit(
+      request,
+      "contact_",
+      5,
+      15 * 60 * 1000,
+      "Too many messages were submitted. Try again later."
+    );
+
+    const data = request.data || {};
+    const readText = (value, field, maxLength, required = true) => {
+      if (typeof value !== "string") {
+        if (!required && (value === undefined || value === null)) return "";
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      const text = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+      if ((required && !text) || text.length > maxLength) {
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      return text;
+    };
+
+    const name = readText(data.name, "name", 120);
+    const email = readText(data.email, "email", 254).toLowerCase();
+    const phone = readText(data.phone, "phone number", 30, false);
+    const subject = readText(data.subject, "subject", 160);
+    const message = readText(data.message, "message", 4000);
+    if (!isValidEmail(email) || (phone && !/^[+()\d\s.-]+$/.test(phone))) {
+      throw new HttpsError("invalid-argument", "Please provide valid contact details.");
+    }
+
+    const submission = {
+      name,
+      email,
+      phone: phone || "Not provided",
+      subject,
+      message,
+      userId: request.auth?.uid || "guest",
+      createdAt: FieldValue.serverTimestamp(),
+      page: "contact",
+      status: "new"
+    };
+    const reference = await getFirestore().collection("contactSubmissions").add(submission);
+    return { success: true, id: reference.id };
+  }
+);
+
+exports.submitReview = onCall(
+  {
+    region: "asia-south1",
+    cors: SITE_CORS_ORIGINS,
+    maxInstances: 5
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in to submit a review.");
+    }
+
+    await enforceIpRateLimit(
+      request,
+      "review_",
+      5,
+      60 * 60 * 1000,
+      "Too many reviews were submitted. Try again later."
+    );
+
+    const data = request.data || {};
+    const readText = (value, field, maxLength) => {
+      if (typeof value !== "string") {
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      const text = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+      if (!text || text.length > maxLength) {
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      return text;
+    };
+    const userName = readText(data.userName, "name", 120);
+    const userLocation = readText(data.userLocation, "location", 120);
+    const reviewText = readText(data.reviewText, "review", 2000);
+    if (reviewText.length < 10 || !Number.isInteger(data.rating) ||
+        data.rating < 1 || data.rating > 5) {
+      throw new HttpsError("invalid-argument", "Please provide a valid rating and review.");
+    }
+
+    const limitRef = getFirestore()
+      .collection("reviewSubmissionLimits")
+      .doc(request.auth.uid);
+    const now = Date.now();
+    await getFirestore().runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(limitRef);
+      const previous = snapshot.data() || {};
+      const startedAt = Number(previous.windowStartedAt) || 0;
+      const attempts = now - startedAt < 24 * 60 * 60 * 1000
+        ? Number(previous.attempts) || 0
+        : 0;
+      if (attempts >= 3) {
+        throw new HttpsError("resource-exhausted", "You have reached the daily review limit.");
+      }
+      transaction.set(limitRef, {
+        windowStartedAt: attempts ? startedAt : now,
+        attempts: attempts + 1,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    });
+
+    const reference = await getFirestore().collection("reviews").add({
+      userName,
+      userLocation,
+      rating: data.rating,
+      reviewText,
+      status: "pending",
+      createdAt: FieldValue.serverTimestamp(),
+      userId: request.auth.uid
+    });
+    return { success: true, id: reference.id };
+  }
+);
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
 /* ===== MAIL TRANSPORTER ===== */
 function transporter() {
   const email = GMAIL_EMAIL.value();
   const pass = GMAIL_PASS.value();
-  
-  console.log("Email config:", {
-    email: email || "MISSING",
-    pass: pass ? "***" + pass.slice(-4) : "MISSING"
-  });
-  
+
   if (!email || !pass) {
     throw new Error("Gmail credentials not configured!");
   }
@@ -153,7 +446,7 @@ function transporter() {
 function adminMail(title, emoji) {
   return `
     <div style="font-family:Arial,sans-serif;max-width:520px;padding:20px">
-      <h2>${emoji} ${title}</h2>
+      <h2>${escapeHtml(emoji)} ${escapeHtml(title)}</h2>
       <p>🕒 ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
       <a href="${DASHBOARD_URL}"
          style="display:inline-block;margin-top:16px;
@@ -184,34 +477,33 @@ function getPaymentMethodDisplay(method) {
 
 /* ===== SUCCESS EMAIL TEMPLATE ===== */
 function successOrderEmail(order, payment) {
-  // Use order.orderId first (this is your "NA-xxxxx"), then fallback to order.id
-  const orderNumber = order.orderId || order.id || `ORD-${Date.now().toString().slice(-8)}`;
+  const orderNumber = escapeHtml(order.orderId || order.id || `ORD-${Date.now().toString().slice(-8)}`);
   
   const customerName = order.shippingAddress ? 
-    `${order.shippingAddress.firstName || ''} ${order.shippingAddress.lastName || ''}`.trim() : 
-    order.email;
+    escapeHtml(`${order.shippingAddress.firstName || ''} ${order.shippingAddress.lastName || ''}`.trim()) :
+    escapeHtml(order.email);
   
   // Payment details
-  const paymentMethod = getPaymentMethodDisplay(payment?.method);
-  const transactionId = payment?.id || order.razorpayPaymentId || '';
+  const paymentMethod = escapeHtml(getPaymentMethodDisplay(payment?.method));
+  const transactionId = escapeHtml(payment?.id || order.razorpayPaymentId || '');
   const fullTransactionId = transactionId || '—';
-  const paymentDate = new Date(payment?.created_at * 1000 || Date.now()).toLocaleString('en-IN');
+  const paymentDate = escapeHtml(new Date(payment?.created_at * 1000 || Date.now()).toLocaleString('en-IN'));
   
   const itemsList = (order.items || [])
     .map(item => {
-      const qty = item.quantity || 1;
-      const price = item.price || 0;
+      const qty = Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+      const price = Number.isFinite(item.price) && item.price >= 0 ? item.price : 0;
       const itemTotal = qty * price;
 
       return `
         <tr>
           <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
             <div style="font-weight:600;color:#111827;font-size:14px;margin-bottom:4px;">
-              ${item.name || "Product"}
+              ${escapeHtml(item.name || "Product")}
             </div>
             ${item.weight ? `
             <div style="font-size:12px;color:#6b7280;margin-bottom:2px;">
-              Weight: ${item.weight}
+              Weight: ${escapeHtml(item.weight)}
             </div>` : ''}
             <div style="font-size:12px;color:#6b7280;">Qty: ${qty}</div>
           </td>
@@ -223,10 +515,10 @@ function successOrderEmail(order, payment) {
     .join("");
 
   // Totals
-  const subtotal = order.subtotal || order.total || 0;
-  const discount = order.discount || 0;
-  const shipping = order.shipping || 0;
-  const total = order.total || (subtotal - discount + shipping);
+  const subtotal = Number.isFinite(order.subtotal) ? order.subtotal : 0;
+  const discount = Number.isFinite(order.discount) ? order.discount : 0;
+  const shipping = Number.isFinite(order.shipping) ? order.shipping : 0;
+  const total = Number.isFinite(order.total) ? order.total : subtotal - discount + shipping;
 
   return `
 <!DOCTYPE html>
@@ -312,8 +604,8 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
     <tr>
       <td style="font-size:14px;color:#1f2937;line-height:1.7;">
         <strong>Name:</strong> ${customerName}<br>
-        <strong>Email:</strong> ${order.email || '—'}<br>
-        <strong>Phone:</strong> ${order.shippingAddress?.phone || '—'}
+        <strong>Email:</strong> ${escapeHtml(order.email || '—')}<br>
+        <strong>Phone:</strong> ${escapeHtml(order.shippingAddress?.phone || '—')}
       </td>
     </tr>
   </table>
@@ -369,7 +661,7 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
 <!-- FOOTER -->
 <tr>
 <td style="padding:18px;text-align:center;background:linear-gradient(90deg,#120f14 0%,#fd1d1d 50%,#fcb045 100%);color:#ffffff;font-size:12px;">
-  © ${new Date().getFullYear()} Hexa Honey<br>Sent to <span style="color:#000000;">${order.email}</span>
+  © ${new Date().getFullYear()} Hexa Honey<br>Sent to <span style="color:#000000;">${escapeHtml(order.email)}</span>
 </td>
 </tr>
 
@@ -383,15 +675,15 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
 
 /* ===== FAILURE EMAIL TEMPLATE ===== */
 function failureOrderEmail(order, paymentError) {
-  // Use order.orderId first (this is your "NA-xxxxx"), then fallback to order.id
-  const orderNumber = order.orderId || order.id || `ORD-${Date.now().toString().slice(-8)}`;
+  const orderNumber = escapeHtml(order.orderId || order.id || `ORD-${Date.now().toString().slice(-8)}`);
   
   const customerName = order.shippingAddress ? 
-    `${order.shippingAddress.firstName || ''} ${order.shippingAddress.lastName || ''}`.trim() : 
-    order.email;
+    escapeHtml(`${order.shippingAddress.firstName || ''} ${order.shippingAddress.lastName || ''}`.trim()) :
+    escapeHtml(order.email);
   
-  const errorDescription = paymentError?.description || 'Payment processing failed';
-  const errorCode = paymentError?.code || 'Unknown error';
+  const errorDescription = escapeHtml(paymentError?.description || 'Payment processing failed');
+  const errorCode = escapeHtml(paymentError?.code || 'Unknown error');
+  const total = Number.isFinite(order.total) ? order.total : 0;
   
   return `
 <!DOCTYPE html>
@@ -459,7 +751,7 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
       <td style="font-size:14px;color:#1f2937;line-height:1.7;">
         <strong>Error Code:</strong> ${errorCode}<br>
         <strong>Description:</strong> ${errorDescription}<br>
-        <strong>Order Amount:</strong> ₹${order.total ? order.total.toFixed(2) : '0.00'}<br>
+        <strong>Order Amount:</strong> ₹${total.toFixed(2)}<br>
         <strong>Date:</strong> ${new Date().toLocaleString('en-IN')}
       </td>
     </tr>
@@ -475,8 +767,8 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
     <tr>
       <td style="font-size:14px;color:#1f2937;line-height:1.7;">
         <strong>Name:</strong> ${customerName}<br>
-        <strong>Email:</strong> ${order.email || '—'}<br>
-        <strong>Phone:</strong> ${order.shippingAddress?.phone || '—'}
+        <strong>Email:</strong> ${escapeHtml(order.email || '—')}<br>
+        <strong>Phone:</strong> ${escapeHtml(order.shippingAddress?.phone || '—')}
       </td>
     </tr>
   </table>
@@ -515,7 +807,7 @@ style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box
 <!-- FOOTER -->
 <tr>
 <td style="padding:18px;text-align:center;background:linear-gradient(90deg,#120f14 0%,#fd1d1d 50%,#fcb045 100%);color:#ffffff;font-size:12px;">
-  © ${new Date().getFullYear()} Hexa Honey<br>Sent to <span style="color:#000000;">${order.email}</span>
+  © ${new Date().getFullYear()} Hexa Honey<br>Sent to <span style="color:#000000;">${escapeHtml(order.email)}</span>
 </td>
 </tr>
 
@@ -563,9 +855,9 @@ async function sendFailureEmailToCustomer(tempOrder, paymentError) {
 exports.razorpayWebhook = require("firebase-functions/v2").https.onRequest(
   {
     region: "asia-south1",
-    cors: true,
     timeoutSeconds: 30,
-    memory: "256MiB"
+    memory: "256MiB",
+    secrets: [RAZORPAY_WEBHOOK_SECRET, GMAIL_PASS]
   },
   async (req, res) => {
     try {
@@ -578,21 +870,24 @@ exports.razorpayWebhook = require("firebase-functions/v2").https.onRequest(
       const razorpaySignature = req.headers['x-razorpay-signature'];
       const webhookSecret = RAZORPAY_WEBHOOK_SECRET.value();
       
-      if (!razorpaySignature) {
-        console.error('❌ No signature in headers');
+      if (typeof razorpaySignature !== "string") {
         return res.status(400).json({ error: 'No signature provided' });
       }
+      if (!webhookSecret) {
+        console.error("Razorpay webhook secret is not configured.");
+        return res.status(500).json({ error: "Webhook verification unavailable." });
+      }
       
-      // Verify signature
-      const crypto = require('crypto');
-      const body = JSON.stringify(req.body);
       const expectedSignature = crypto
         .createHmac('sha256', webhookSecret)
-        .update(body)
+        .update(req.rawBody || Buffer.from(JSON.stringify(req.body)))
         .digest('hex');
+      const expectedSignatureBuffer = Buffer.from(expectedSignature, "hex");
+      const providedSignatureBuffer = Buffer.from(razorpaySignature, "hex");
       
-      if (expectedSignature !== razorpaySignature) {
-        console.error('❌ Invalid signature');
+      if (expectedSignatureBuffer.length !== providedSignatureBuffer.length ||
+          !crypto.timingSafeEqual(expectedSignatureBuffer, providedSignatureBuffer)) {
+        console.error("Razorpay webhook signature verification failed.");
         return res.status(400).json({ error: 'Invalid signature' });
       }
       
@@ -623,28 +918,30 @@ exports.razorpayWebhook = require("firebase-functions/v2").https.onRequest(
       res.status(200).json({ status: 'success' });
       
     } catch (error) {
-      console.error('🔥 Webhook error:', error);
-      res.status(500).json({ error: error.message });
+      console.error("Razorpay webhook processing failed.", error);
+      res.status(500).json({ error: "Webhook processing failed." });
     }
   }
 );
 
+function matchesRazorpayOrder(payment, order) {
+  const expectedAmount = Math.round(Number(order.total) * 100);
+  return typeof payment.order_id === "string" &&
+    payment.order_id === order.razorpayOrderId &&
+    payment.currency === "INR" &&
+    Number.isSafeInteger(payment.amount) &&
+    payment.amount === expectedAmount;
+}
+
 /* ===== PAYMENT CAPTURED HANDLER ===== */
 async function handlePaymentCaptured(payload) {
   try {
-    const payment = payload.payment.entity;
+    const payment = payload?.payment?.entity;
+    if (!payment || payment.status !== "captured") {
+      console.error("Ignoring invalid captured-payment webhook payload.");
+      return;
+    }
     const orderId = payment.notes?.orderId || payment.order_id;
-    
-    console.log('💰 Payment captured:', {
-      paymentId: payment.id,
-      orderId: orderId,
-      amount: payment.amount / 100,
-      currency: payment.currency,
-      method: payment.method,
-      bank: payment.bank,
-      cardId: payment.card_id,
-      wallet: payment.wallet
-    });
     
     if (!orderId) {
       console.error('❌ No orderId in payment notes');
@@ -652,9 +949,10 @@ async function handlePaymentCaptured(payload) {
     }
     
     // Find order in Firestore by orderId
-    const ordersSnapshot = await admin.firestore()
+    const ordersSnapshot = await getFirestore()
       .collection("orders")
       .where("orderId", "==", orderId)
+      .limit(1)
       .get();
     
     if (ordersSnapshot.empty) {
@@ -664,38 +962,35 @@ async function handlePaymentCaptured(payload) {
     
     const orderDoc = ordersSnapshot.docs[0];
     const orderData = orderDoc.data();
-    
-    // Update order with payment details
-    await orderDoc.ref.update({
-      paymentStatus: 'paid',
-      razorpayPaymentId: payment.id,
-      razorpayOrderId: payment.order_id,
-      paymentMethod: payment.method || 'Razorpay',
-      paymentBank: payment.bank || null,
-      paymentCardId: payment.card_id || null,
-      paymentWallet: payment.wallet || null,
-      paidAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    
-    console.log(`✅ Order ${orderId} marked as paid`);
-    
-    // Update user's orders if exists
-    if (orderData.userId) {
-      await admin.firestore()
-        .collection("users")
-        .doc(orderData.userId)
-        .collection("orders")
-        .doc(orderDoc.id)
-        .update({
-          paymentStatus: 'paid',
-          razorpayPaymentId: payment.id,
-          razorpayOrderId: payment.order_id,
-          paymentMethod: payment.method || 'Razorpay',
-          paidAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+    if (!matchesRazorpayOrder(payment, orderData)) {
+      console.error("Captured payment does not match the stored order.");
+      return;
     }
+
+    const db = getFirestore();
+    const userOrderRef = orderData.userId
+      ? db.collection("users").doc(orderData.userId).collection("orders").doc(orderDoc.id)
+      : null;
+    const markedPaid = await db.runTransaction(async (transaction) => {
+      const currentOrder = await transaction.get(orderDoc.ref);
+      if (!currentOrder.exists || currentOrder.data().paymentStatus === "paid" ||
+          !matchesRazorpayOrder(payment, currentOrder.data())) {
+        return false;
+      }
+      const userOrder = userOrderRef ? await transaction.get(userOrderRef) : null;
+      const paymentUpdate = {
+        paymentStatus: "paid",
+        razorpayPaymentId: payment.id,
+        razorpayOrderId: payment.order_id,
+        paymentMethod: payment.method || "Razorpay",
+        paidAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      };
+      transaction.update(orderDoc.ref, paymentUpdate);
+      if (userOrder?.exists) transaction.update(userOrderRef, paymentUpdate);
+      return true;
+    });
+    if (!markedPaid) return;
     
     // SEND SUCCESS EMAIL TO CUSTOMER
     if (orderData.email) {
@@ -714,46 +1009,58 @@ async function handlePaymentCaptured(payload) {
 /* ===== PAYMENT FAILED HANDLER ===== */
 async function handlePaymentFailed(payload) {
   try {
-    const payment = payload.payment.entity;
+    const payment = payload?.payment?.entity;
+    if (!payment || payment.status !== "failed") {
+      console.error("Ignoring invalid failed-payment webhook payload.");
+      return;
+    }
     const orderId = payment.notes?.orderId || payment.order_id;
-    
-    console.log('❌ Payment failed:', {
-      paymentId: payment.id,
-      orderId: orderId,
-      errorCode: payment.error_code,
-      errorDescription: payment.error_description
-    });
     
     if (!orderId) return;
     
     // Find order in Firestore
-    const ordersSnapshot = await admin.firestore()
+    const ordersSnapshot = await getFirestore()
       .collection("orders")
       .where("orderId", "==", orderId)
+      .limit(1)
       .get();
     
     if (ordersSnapshot.empty) return;
     
     const orderDoc = ordersSnapshot.docs[0];
     const orderData = orderDoc.data();
-    
+    if (!matchesRazorpayOrder(payment, orderData)) {
+      console.error("Failed payment does not match the stored order.");
+      return;
+    }
+
     const paymentError = {
-      code: payment.error_code,
-      description: payment.error_description,
-      source: payment.error_source,
-      step: payment.error_step,
-      reason: payment.error_reason
+      code: typeof payment.error_code === "string" ? payment.error_code.slice(0, 100) : "",
+      description: typeof payment.error_description === "string"
+        ? payment.error_description.slice(0, 500)
+        : "",
+      source: typeof payment.error_source === "string" ? payment.error_source.slice(0, 100) : "",
+      step: typeof payment.error_step === "string" ? payment.error_step.slice(0, 100) : "",
+      reason: typeof payment.error_reason === "string" ? payment.error_reason.slice(0, 200) : ""
     };
     
-    // Update order with failed status
-    await orderDoc.ref.update({
-      paymentStatus: 'failed',
-      razorpayPaymentId: payment.id,
-      paymentError: paymentError,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    const markedFailed = await getFirestore().runTransaction(async (transaction) => {
+      const currentOrder = await transaction.get(orderDoc.ref);
+      if (!currentOrder.exists || currentOrder.data().paymentStatus === "paid" ||
+          !matchesRazorpayOrder(payment, currentOrder.data())) {
+        return false;
+      }
+      transaction.update(orderDoc.ref, {
+        paymentStatus: "failed",
+        razorpayPaymentId: payment.id,
+        paymentError,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      return true;
     });
+    if (!markedFailed) return;
     
-    console.log(`⚠️ Order ${orderId} marked as failed`);
+    console.log("Payment failure recorded for order.");
     
     // SEND FAILURE EMAIL TO CUSTOMER
     if (orderData.email) {
@@ -783,17 +1090,15 @@ async function handlePaymentIncomplete(payload) {
     if (!orderId) return;
     
     // Find and delete temp order
-    const tempOrdersSnapshot = await admin.firestore()
+    const tempOrdersSnapshot = await getFirestore()
       .collection("tempOrders")
       .where("orderId", "==", orderId)
       .get();
     
     if (!tempOrdersSnapshot.empty) {
-      const batch = admin.firestore().batch();
-      tempOrdersSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
+      await Promise.all(tempOrdersSnapshot.docs.map(doc =>
+        deleteTempOrderAndReleasePromo(getFirestore(), doc.ref)
+      ));
       console.log(`🗑️ Deleted temp order ${orderId}`);
     }
     
@@ -817,7 +1122,7 @@ async function handlePaymentIncomplete(payload) {
 /* ===== SEND SUCCESS EMAIL ===== */
 async function sendSuccessEmail(orderDocId, payment) {
   try {
-    const orderDoc = await admin.firestore()
+    const orderDoc = await getFirestore()
       .collection("orders")
       .doc(orderDocId)
       .get();
@@ -856,7 +1161,7 @@ async function sendSuccessEmail(orderDocId, payment) {
     
     await orderDoc.ref.update({
       successEmailSent: true,
-      successEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      successEmailSentAt: FieldValue.serverTimestamp(),
     });
     
   } catch (error) {
@@ -867,7 +1172,7 @@ async function sendSuccessEmail(orderDocId, payment) {
 /* ===== SEND FAILURE EMAIL ===== */
 async function sendFailureEmail(orderDocId, paymentError) {
   try {
-    const orderDoc = await admin.firestore()
+    const orderDoc = await getFirestore()
       .collection("orders")
       .doc(orderDocId)
       .get();
@@ -901,7 +1206,7 @@ async function sendFailureEmail(orderDocId, paymentError) {
     
     await orderDoc.ref.update({
       failureEmailSent: true,
-      failureEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      failureEmailSentAt: FieldValue.serverTimestamp(),
     });
     
   } catch (error) {
@@ -935,73 +1240,192 @@ async function sendAdminNotification(orderId, payment, status) {
 }
 
 /* ===== CREATE RAZORPAY ORDER ===== */
+exports.createCheckout = onCall(
+  {
+    region: "asia-south1",
+    cors: SITE_CORS_ORIGINS,
+    maxInstances: 10
+  },
+  async (request) => {
+    await enforceIpRateLimit(
+      request,
+      "checkout_",
+      20,
+      15 * 60 * 1000,
+      "Too many checkout attempts. Try again later."
+    );
+
+    const data = request.data || {};
+    const readText = (value, field, maxLength, required = true) => {
+      if (typeof value !== "string") {
+        if (!required && (value === undefined || value === null)) return "";
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      const text = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+      if ((required && !text) || text.length > maxLength) {
+        throw new HttpsError("invalid-argument", `Please provide a valid ${field}.`);
+      }
+      return text;
+    };
+
+    const email = readText(data.email, "email", 254).toLowerCase();
+    const firstName = readText(data.firstName, "first name", 100);
+    const lastName = readText(data.lastName, "last name", 100);
+    const address = readText(data.address, "address", 300);
+    const apartment = readText(data.apartment, "apartment", 150, false);
+    const city = readText(data.city, "city", 100);
+    const state = readText(data.state, "state", 100);
+    const zipCode = readText(data.zipCode, "PIN code", 6);
+    const phone = readText(data.phone, "phone number", 10);
+    if (!isValidEmail(email) || !/^\d{6}$/.test(zipCode) || !/^[6-9]\d{9}$/.test(phone)) {
+      throw new HttpsError("invalid-argument", "Please provide valid contact and shipping details.");
+    }
+
+    if (!Array.isArray(data.items) || !data.items.length || data.items.length > 30) {
+      throw new HttpsError("invalid-argument", "Checkout items are invalid.");
+    }
+    const items = data.items.map((item) => {
+      const productId = String(item?.productId ?? "");
+      if (!/^[1-6]$/.test(productId) ||
+          !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+        throw new HttpsError("invalid-argument", "Checkout items are invalid.");
+      }
+      return { productId, quantity: item.quantity };
+    });
+    if (new Set(items.map(item => item.productId)).size !== items.length) {
+      throw new HttpsError("invalid-argument", "Checkout items contain duplicates.");
+    }
+
+    const promoCode = data.promoCode === undefined || data.promoCode === null
+      ? ""
+      : readText(data.promoCode, "promo code", 64, false).toUpperCase();
+    const tempOrderId = crypto.randomBytes(16).toString("hex");
+    const customerName = `${firstName} ${lastName}`.trim();
+    const order = {
+      orderId: `NA-${crypto.randomBytes(8).toString("hex").toUpperCase()}`,
+      email,
+      customerName,
+      customerEmail: email,
+      customerPhone: `+91 ${phone}`,
+      shippingAddress: {
+        firstName,
+        lastName,
+        address,
+        apartment,
+        city,
+        state,
+        zipCode,
+        phone: `+91 ${phone}`,
+        country: "India"
+      },
+      items,
+      status: "payment_initiated",
+      paymentStatus: "initiated",
+      userId: request.auth?.uid || null,
+      userEmail: request.auth?.token.email || null,
+      userName: request.auth?.token.name || customerName,
+      createdAt: Timestamp.now(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 30 * 60 * 1000)
+    };
+    if (promoCode) order.promoCode = promoCode;
+
+    const db = getFirestore();
+    const pricing = await priceCheckoutOrder(order, db);
+    Object.assign(order, pricing);
+    await db.collection("tempOrders").doc(tempOrderId).create(order);
+    return {
+      tempOrderId,
+      orderId: order.orderId,
+      email: order.email,
+      customerName: order.customerName,
+      shippingAddress: order.shippingAddress,
+      items: order.items,
+      total: order.total
+    };
+  }
+);
+
 exports.createRazorpayOrder = onCall(
   {
     region: "asia-south1",
-    cors: true,
+    cors: SITE_CORS_ORIGINS,
     timeoutSeconds: 30,
     memory: "256MiB",
     maxInstances: 10,
-    invoker: "public"
+    invoker: "public",
+    secrets: [RAZORPAY_KEY_SECRET]
   },
   async (request) => {
     try {
-      const origin = request.rawRequest.headers.origin || 'unknown';
-      console.log('🚀 createRazorpayOrder called from origin:', origin);
-      console.log('Request data:', JSON.stringify(request.data));
-      
-      const { amount, currency = "INR", receipt, notes } = request.data;
-      
-      if (!amount || amount <= 0) {
-        console.error('❌ Invalid amount:', amount);
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid amount');
+      const { tempOrderId } = request.data || {};
+      if (typeof tempOrderId !== "string" || !tempOrderId || tempOrderId.length > 128) {
+        throw new HttpsError("invalid-argument", "A valid checkout order is required.");
       }
+
+      await enforceIpRateLimit(
+        request,
+        "payment_",
+        10,
+        15 * 60 * 1000,
+        "Too many payment attempts. Try again later."
+      );
+
+      const db = getFirestore();
+      const tempOrderRef = db.collection("tempOrders").doc(tempOrderId);
+      const tempOrderSnapshot = await tempOrderRef.get();
+      if (!tempOrderSnapshot.exists) {
+        throw new HttpsError("not-found", "Checkout order not found.");
+      }
+
+      const tempOrder = tempOrderSnapshot.data();
+      if (tempOrder.status !== "payment_initiated" ||
+          !isValidEmail(tempOrder.email) ||
+          !tempOrder.orderId ||
+          tempOrder.razorpayOrderId ||
+          (tempOrder.expiresAt?.toMillis?.() && tempOrder.expiresAt.toMillis() < Date.now()) ||
+          (tempOrder.userId && request.auth?.uid !== tempOrder.userId)) {
+        throw new HttpsError("failed-precondition", "Checkout order cannot be paid.");
+      }
+      const pricing = await priceCheckoutOrder(tempOrder, db);
+      await reservePromoUse(
+        db,
+        tempOrderRef,
+        Math.round(pricing.subtotal * 100),
+        careerDateInThalassery()
+      );
       
       const keyId = RAZORPAY_KEY_ID.value();
       const keySecret = RAZORPAY_KEY_SECRET.value();
-      
-      console.log('🔑 Razorpay config:', {
-        hasKeyId: !!keyId,
-        hasKeySecret: !!keySecret,
-        keyIdPrefix: keyId ? keyId.substring(0, 8) + '...' : 'missing'
-      });
-      
       if (!keyId || !keySecret) {
-        console.error('❌ Razorpay keys not configured');
-        throw new functions.https.HttpsError('failed-precondition', 'Payment gateway not configured');
+        throw new HttpsError("failed-precondition", "Payment gateway not configured.");
       }
-      
+
       const Razorpay = require('razorpay');
-      
-      const razorpay = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret
-      });
-      
-      const amountInPaise = Math.round(amount * 100);
-      
-      console.log('💳 Creating Razorpay order:', {
-        amountInPaise,
-        currency,
-        receipt: receipt || `receipt_${Date.now()}`,
-        notes
-      });
-      
+      const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+      const amountInPaise = Math.round(pricing.total * 100);
+      const verifiedOrderId = `NA-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+      if (!Number.isSafeInteger(amountInPaise) || amountInPaise <= 0) {
+        throw new HttpsError("invalid-argument", "Checkout order amount is invalid.");
+      }
+
       const order = await razorpay.orders.create({
         amount: amountInPaise,
-        currency: currency,
-        receipt: receipt || `receipt_${Date.now()}`,
-        notes: notes || {},
+        currency: "INR",
+        receipt: `checkout_${tempOrderId.slice(0, 31)}`,
+        notes: {
+          orderId: verifiedOrderId,
+          tempOrderId
+        },
         payment_capture: 1
       });
-      
-      console.log('✅ Razorpay order created:', {
-        id: order.id,
-        amount: order.amount,
-        status: order.status,
-        currency: order.currency
+
+      await tempOrderRef.update({
+        ...pricing,
+        orderId: verifiedOrderId,
+        razorpayOrderId: order.id,
+        updatedAt: FieldValue.serverTimestamp()
       });
-      
+
       return {
         success: true,
         orderId: order.id,
@@ -1009,113 +1433,244 @@ exports.createRazorpayOrder = onCall(
         currency: order.currency,
         razorpayKey: keyId
       };
-      
     } catch (error) {
-      console.error('🔥 Error in createRazorpayOrder:', {
-        message: error.message,
-        stack: error.stack,
-        errorCode: error.error_code,
-        errorDescription: error.error_description
-      });
-      
-      throw new functions.https.HttpsError('internal', error.message);
+      if (error instanceof HttpsError) throw error;
+      console.error("Failed to create Razorpay order.", error);
+      throw new HttpsError("internal", "Unable to initialize payment.");
     }
   }
 );
 
-/* 🧪 TEST RAZORPAY CONFIG */
 exports.testRazorpayConfig = require("firebase-functions/v2").https.onRequest(
-  async (req, res) => {
-    try {
-      const keyId = RAZORPAY_KEY_ID.value();
-      const keySecret = RAZORPAY_KEY_SECRET.value();
-      
-      const Razorpay = require('razorpay');
-      
-      const razorpay = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret
-      });
-      
-      // Test by creating a small order
-      const testOrder = await razorpay.orders.create({
-        amount: 100, // 1 INR
-        currency: "INR",
-        receipt: `test_${Date.now()}`,
-        payment_capture: 0
-      });
-      
-      res.json({
-        success: true,
-        message: "Razorpay configuration is working",
-        testOrder: {
-          id: testOrder.id,
-          amount: testOrder.amount,
-          status: testOrder.status
-        },
-        config: {
-          keyIdPresent: !!keyId,
-          keySecretPresent: !!keySecret,
-          keyIdPrefix: keyId ? keyId.substring(0, 8) + '...' : 'missing',
-          region: "asia-south1"
-        }
-      });
-      
-    } catch (error) {
-      console.error('Razorpay test error:', error);
-      
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        stack: error.stack,
-        config: {
-          keyIdPresent: !!RAZORPAY_KEY_ID.value(),
-          keySecretPresent: !!RAZORPAY_KEY_SECRET.value()
-        }
-      });
-    }
-  }
+  async (_req, res) => res.status(404).send("Not found")
 );
 
-/* ===== VERIFY PAYMENT ===== */
-exports.verifyPayment = require("firebase-functions/v2").https.onCall(
+/* ===== VERIFY AND FINALIZE PAYMENT ===== */
+exports.verifyPayment = onCall(
   {
     region: "asia-south1",
-    cors: true,
+    cors: SITE_CORS_ORIGINS,
     timeoutSeconds: 30,
-    memory: "256MiB"
+    memory: "256MiB",
+    secrets: [RAZORPAY_KEY_SECRET]
   },
   async (request) => {
     try {
-      const { razorpayPaymentId, razorpayOrderId, razorpaySignature, orderId } = request.data;
-      
-      if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
-        throw new Error("Missing payment verification data");
+      const {
+        tempOrderId,
+        razorpayPaymentId,
+        razorpayOrderId,
+        razorpaySignature
+      } = request.data || {};
+      if ([tempOrderId, razorpayPaymentId, razorpayOrderId, razorpaySignature]
+        .some(value => typeof value !== "string" || !value || value.length > 256)) {
+        throw new HttpsError("invalid-argument", "Payment verification data is invalid.");
       }
-      
-      const crypto = require('crypto');
+
+      await enforceIpRateLimit(
+        request,
+        "verify_",
+        20,
+        15 * 60 * 1000,
+        "Too many payment verification attempts. Try again later."
+      );
+
+      const db = getFirestore();
+      const tempOrderRef = db.collection("tempOrders").doc(tempOrderId);
+      const tempOrderSnapshot = await tempOrderRef.get();
+      if (!tempOrderSnapshot.exists) {
+        throw new HttpsError("not-found", "Checkout order not found.");
+      }
+
+      const tempOrder = tempOrderSnapshot.data();
+      if (tempOrder.razorpayOrderId !== razorpayOrderId ||
+          (tempOrder.userId && request.auth?.uid !== tempOrder.userId)) {
+        throw new HttpsError("permission-denied", "Payment does not match this checkout.");
+      }
+
       const keySecret = RAZORPAY_KEY_SECRET.value();
-      
+      if (!keySecret) {
+        throw new HttpsError("failed-precondition", "Payment gateway not configured.");
+      }
+
       const expectedSignature = crypto
         .createHmac('sha256', keySecret)
         .update(razorpayOrderId + "|" + razorpayPaymentId)
         .digest('hex');
-      
-      if (expectedSignature !== razorpaySignature) {
-        throw new Error("Invalid payment signature");
+      const expectedSignatureBuffer = Buffer.from(expectedSignature, "hex");
+      const providedSignatureBuffer = Buffer.from(razorpaySignature, "hex");
+      if (expectedSignatureBuffer.length !== providedSignatureBuffer.length ||
+          !crypto.timingSafeEqual(expectedSignatureBuffer, providedSignatureBuffer)) {
+        throw new HttpsError("permission-denied", "Payment signature is invalid.");
       }
-      
-      console.log('✅ Payment verified successfully');
-      
+
+      const Razorpay = require("razorpay");
+      const razorpay = new Razorpay({
+        key_id: RAZORPAY_KEY_ID.value(),
+        key_secret: keySecret
+      });
+      const payment = await razorpay.payments.fetch(razorpayPaymentId);
+      const expectedAmount = Math.round(tempOrder.total * 100);
+      if (payment.order_id !== razorpayOrderId ||
+          payment.status !== "captured" ||
+          payment.amount !== expectedAmount ||
+          payment.currency !== "INR") {
+        throw new HttpsError("failed-precondition", "Payment is not captured for this order.");
+      }
+
+      const orderRef = db.collection("orders").doc(tempOrderId);
+      const userOrderRef = tempOrder.userId
+        ? db.collection("users").doc(tempOrder.userId).collection("orders").doc(tempOrderId)
+        : null;
+      const promoCodeRef = tempOrder.promoCodeId
+        ? db.collection("promoCodes").doc(tempOrder.promoCodeId)
+        : null;
+      const now = FieldValue.serverTimestamp();
+      const finalOrder = {
+        ...tempOrder,
+        id: tempOrderId,
+        status: "ordered",
+        paymentStatus: "paid",
+        razorpayPaymentId,
+        razorpayOrderId,
+        paymentMethod: payment.method || "Razorpay",
+        paidAt: now,
+        updatedAt: now
+      };
+      delete finalOrder.expiresAt;
+      delete finalOrder.razorpaySignature;
+
+      await db.runTransaction(async (transaction) => {
+        const [currentTempOrder, existingOrder, promoCodeSnapshot] = await Promise.all([
+          transaction.get(tempOrderRef),
+          transaction.get(orderRef),
+          promoCodeRef ? transaction.get(promoCodeRef) : Promise.resolve(null)
+        ]);
+        if (existingOrder.exists) {
+          if (existingOrder.data().razorpayPaymentId === razorpayPaymentId) return;
+          throw new HttpsError("already-exists", "This checkout has already been completed.");
+        }
+        if (!currentTempOrder.exists ||
+            currentTempOrder.data().razorpayOrderId !== razorpayOrderId) {
+          throw new HttpsError("failed-precondition", "Checkout order is no longer available.");
+        }
+
+        transaction.create(orderRef, finalOrder);
+        if (userOrderRef) transaction.create(userOrderRef, finalOrder);
+        if (promoCodeRef) {
+          const currentTempOrderData = currentTempOrder.data();
+          if (!currentTempOrderData.promoReserved) {
+            if (!promoCodeSnapshot?.exists || !hasPromoUsageAvailable(promoCodeSnapshot.data())) {
+              throw new HttpsError("failed-precondition", "The promo code is no longer available.");
+            }
+            transaction.update(promoCodeRef, {
+              usedCount: FieldValue.increment(1)
+            });
+          }
+        }
+        transaction.delete(tempOrderRef);
+      });
+
       return {
         success: true,
-        message: 'Payment verified successfully'
+        order: {
+          id: tempOrderId,
+          orderId: tempOrder.orderId,
+          status: "ordered",
+          paymentStatus: "paid",
+          email: tempOrder.email,
+          customerName: tempOrder.customerName,
+          shippingAddress: tempOrder.shippingAddress || {},
+          items: tempOrder.items || [],
+          subtotal: tempOrder.subtotal || 0,
+          discount: tempOrder.discount || 0,
+          shipping: tempOrder.shipping || 0,
+          total: tempOrder.total,
+          paymentMethod: payment.method || "Razorpay"
+        },
+        profileOrderSaved: Boolean(userOrderRef)
       };
-      
     } catch (error) {
-      console.error('🔥 Payment verification error:', error);
-      throw new Error(`Payment verification failed: ${error.message}`);
+      if (error instanceof HttpsError) throw error;
+      console.error("Payment verification failed.", error);
+      throw new HttpsError("internal", "Unable to verify payment.");
     }
+  }
+);
+
+exports.getOrderTracking = onCall(
+  {
+    region: "asia-south1",
+    cors: SITE_CORS_ORIGINS,
+    maxInstances: 10
+  },
+  async (request) => {
+    const data = request.data || {};
+    const orderId = typeof data.orderId === "string" ? data.orderId.trim() : "";
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+    if (!orderId || orderId.length > 64 || !isValidEmail(email)) {
+      throw new HttpsError("invalid-argument", "Provide a valid order ID and email.");
+    }
+
+    await enforceIpRateLimit(
+      request,
+      "tracking_",
+      20,
+      15 * 60 * 1000,
+      "Too many tracking attempts. Try again later."
+    );
+
+    const db = getFirestore();
+    const matches = await db.collectionGroup("orders")
+      .where("orderId", "==", orderId)
+      .limit(20)
+      .get();
+    let matchedOrder = matches.docs.find((doc) =>
+      typeof doc.data().email === "string" &&
+      doc.data().email.trim().toLowerCase() === email
+    );
+    if (!matchedOrder) {
+      const legacyOrder = await db.collection("orders").doc(orderId).get();
+      if (legacyOrder.exists &&
+          typeof legacyOrder.data().email === "string" &&
+          legacyOrder.data().email.trim().toLowerCase() === email) {
+        matchedOrder = legacyOrder;
+      }
+    }
+    if (!matchedOrder) return { success: false };
+
+    const order = matchedOrder.data();
+    const status = ["ordered", "confirmed", "processing", "shipped", "out-for-delivery", "delivered", "cancelled"]
+      .includes(String(order.status || "").toLowerCase())
+      ? String(order.status).toLowerCase()
+      : "ordered";
+    const items = Array.isArray(order.items) ? order.items.slice(0, 100).map((item) => ({
+      name: typeof item.name === "string" ? item.name.slice(0, 200) : "Product",
+      quantity: Number.isFinite(item.quantity) ? item.quantity : 1,
+      price: Number.isFinite(item.price) ? item.price : 0,
+      weight: typeof item.weight === "string" ? item.weight.slice(0, 50) : "",
+      image: typeof item.image === "string" && item.image.startsWith("https://")
+        ? item.image
+        : ""
+    })) : [];
+    return {
+      success: true,
+      order: {
+        id: order.orderId || matchedOrder.id,
+        orderId: order.orderId || matchedOrder.id,
+        status,
+        createdAt: order.createdAt?.toMillis?.() || null,
+        confirmedAt: order.confirmedAt?.toMillis?.() || null,
+        shippedAt: order.shippedAt?.toMillis?.() || null,
+        outForDeliveryAt: order.outForDeliveryAt?.toMillis?.() || null,
+        deliveredAt: order.deliveredAt?.toMillis?.() || null,
+        customerName: typeof order.customerName === "string" ? order.customerName.slice(0, 200) : "Customer",
+        items,
+        subtotal: Number.isFinite(order.subtotal) ? order.subtotal : 0,
+        shipping: Number.isFinite(order.shipping) ? order.shipping : 0,
+        total: Number.isFinite(order.total) ? order.total : 0
+      }
+    };
   }
 );
 
@@ -1155,13 +1710,13 @@ async function sendPaidOrderNotifications(order, orderId) {
   }
 
   if (order.orderId) {
-    const tempOrdersSnapshot = await admin.firestore()
+    const tempOrdersSnapshot = await getFirestore()
       .collection('tempOrders')
       .where('orderId', '==', order.orderId)
       .get();
 
     if (!tempOrdersSnapshot.empty) {
-      const batch = admin.firestore().batch();
+      const batch = getFirestore().batch();
       tempOrdersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
       console.log('🗑️ Cleaned up temp orders');
@@ -1174,6 +1729,7 @@ exports.onOrderCreated = onDocumentCreated(
   {
     document: "orders/{id}",
     region: "asia-south1",
+    secrets: [GMAIL_PASS]
   },
   async (event) => {
     try {
@@ -1202,6 +1758,7 @@ exports.onUserOrderCreated = onDocumentCreated(
   {
     document: "users/{userId}/orders/{id}",
     region: "asia-south1",
+    secrets: [GMAIL_PASS]
   },
   async (event) => {
     try {
@@ -1212,7 +1769,7 @@ exports.onUserOrderCreated = onDocumentCreated(
         return;
       }
 
-      const db = admin.firestore();
+      const db = getFirestore();
       const rootOrder = await db.collection("orders").doc(orderId).get();
       if (rootOrder.exists) {
         console.log(`ℹ️ Order ${orderId} already exists globally; notification handled by onOrderCreated`);
@@ -1239,7 +1796,7 @@ exports.onUserOrderCreated = onDocumentCreated(
 );
 
 /* ⭐ REVIEW SUBMITTED */
-exports.onNewReview = onDocumentCreated("reviews/{id}", async () => {
+exports.onNewReview = onDocumentCreated({ document: "reviews/{id}", secrets: [GMAIL_PASS] }, async () => {
   const mailer = transporter();
   await mailer.sendMail({
     from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
@@ -1250,7 +1807,7 @@ exports.onNewReview = onDocumentCreated("reviews/{id}", async () => {
 });
 
 /* 👤 CUSTOMER REGISTERED */
-exports.onNewCustomer = onDocumentCreated("users/{id}", async () => {
+exports.onNewCustomer = onDocumentCreated({ document: "users/{id}", secrets: [GMAIL_PASS] }, async () => {
   const mailer = transporter();
   await mailer.sendMail({
     from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
@@ -1261,7 +1818,7 @@ exports.onNewCustomer = onDocumentCreated("users/{id}", async () => {
 });
 
 /* 📩 NEW MESSAGE */
-exports.onNewMessage = onDocumentCreated("contactSubmissions/{id}", async () => {
+exports.onNewMessage = onDocumentCreated({ document: "contactSubmissions/{id}", secrets: [GMAIL_PASS] }, async () => {
   const mailer = transporter();
   await mailer.sendMail({
     from: `"Natura Honey" <${GMAIL_EMAIL.value()}>`,
@@ -1275,8 +1832,10 @@ exports.onNewMessage = onDocumentCreated("contactSubmissions/{id}", async () => 
 exports.resendOrderEmail = require("firebase-functions/v2").https.onCall(
   {
     region: "asia-south1",
+    secrets: [GMAIL_PASS]
   },
   async (request) => {
+    await requireCareerAdmin(request);
     const { orderId } = request.data;
     
     if (!orderId) {
@@ -1285,7 +1844,7 @@ exports.resendOrderEmail = require("firebase-functions/v2").https.onCall(
     
     try {
       // Get order data
-      const orderDoc = await admin.firestore()
+      const orderDoc = await getFirestore()
         .collection("orders")
         .doc(orderId)
         .get();
@@ -1313,12 +1872,12 @@ exports.resendOrderEmail = require("firebase-functions/v2").https.onCall(
       });
       
       // Update timestamp
-      await admin.firestore()
+      await getFirestore()
         .collection("orders")
         .doc(orderId)
         .update({
-          emailResentAt: admin.firestore.FieldValue.serverTimestamp(),
-          emailResentCount: admin.firestore.FieldValue.increment(1)
+          emailResentAt: FieldValue.serverTimestamp(),
+          emailResentCount: FieldValue.increment(1)
         });
       
       return { 
@@ -1336,145 +1895,18 @@ exports.resendOrderEmail = require("firebase-functions/v2").https.onCall(
 
 /* 🧪 TEST FUNCTION */
 exports.testEmailConfig = require("firebase-functions/v2").https.onRequest(
-  async (req, res) => {
-    try {
-      const email = GMAIL_EMAIL.value();
-      const pass = GMAIL_PASS.value();
-      
-      res.json({
-        success: true,
-        config: {
-          email: email || "MISSING",
-          passConfigured: !!pass,
-          passLength: pass ? pass.length : 0
-        },
-        message: "Using direct GMAIL_EMAIL and GMAIL_PASS params"
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
+  async (_req, res) => res.status(404).send("Not found")
 );
 
-// Add this to your index.js - HTTP endpoint with proper CORS
+// The callable createRazorpayOrder is the only supported payment-order endpoint.
 exports.createRazorpayOrderHttp = require("firebase-functions/v2").https.onRequest(
   {
     region: "asia-south1",
-    cors: true,  // This enables CORS for HTTP calls
     timeoutSeconds: 30,
     memory: "256MiB",
     maxInstances: 10
   },
-  async (req, res) => {
-    // Set CORS headers manually (v2 onRequest with cors: true should handle this)
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    
-    // Handle preflight (OPTIONS) requests
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-    
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-      res.status(405).json({ 
-        success: false, 
-        error: 'Method not allowed. Use POST.' 
-      });
-      return;
-    }
-    
-    try {
-      console.log('🚀 HTTP createRazorpayOrder called');
-      
-      // Extract data from request body
-      const requestData = req.body.data || req.body;
-      const { amount, currency = "INR", receipt, notes } = requestData;
-      
-      console.log('Request data:', { amount, currency, receipt, notes });
-      
-      if (!amount || amount <= 0) {
-        res.status(400).json({ 
-          success: false, 
-          error: 'Amount must be a positive number' 
-        });
-        return;
-      }
-      
-      const keyId = RAZORPAY_KEY_ID.value();
-      const keySecret = RAZORPAY_KEY_SECRET.value();
-      
-      console.log('🔑 Razorpay config:', {
-        hasKeyId: !!keyId,
-        hasKeySecret: !!keySecret,
-        keyIdPrefix: keyId ? keyId.substring(0, 8) + '...' : 'missing'
-      });
-      
-      if (!keyId || !keySecret) {
-        console.error('❌ Razorpay keys not configured');
-        res.status(500).json({ 
-          success: false, 
-          error: 'Payment gateway not configured' 
-        });
-        return;
-      }
-      
-      const Razorpay = require('razorpay');
-      
-      const razorpay = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret
-      });
-      
-      const amountInPaise = Math.round(amount * 100);
-      
-      console.log('💳 Creating Razorpay order:', {
-        amountInPaise,
-        currency,
-        receipt: receipt || `receipt_${Date.now()}`
-      });
-      
-      const order = await razorpay.orders.create({
-        amount: amountInPaise,
-        currency: currency,
-        receipt: receipt || `receipt_${Date.now()}`,
-        notes: notes || {},
-        payment_capture: 1
-      });
-      
-      console.log('✅ Razorpay order created:', {
-        id: order.id,
-        amount: order.amount,
-        status: order.status,
-        currency: order.currency
-      });
-      
-      res.status(200).json({
-        success: true,
-        result: {
-          orderId: order.id,
-          amount: order.amount / 100,
-          currency: order.currency,
-          razorpayKey: keyId
-        }
-      });
-      
-    } catch (error) {
-      console.error('🔥 Error in createRazorpayOrderHttp:', {
-        message: error.message,
-        stack: error.stack,
-        errorCode: error.error_code,
-        errorDescription: error.error_description
-      });
-      
-      res.status(500).json({
-        success: false,
-        error: 'Failed to create payment order: ' + error.message
-      });
-    }
-  }
+  async (_req, res) => res.status(404).send("Not found")
 );
 
 /* ===== CLEANUP EXPIRED TEMP ORDERS ===== */
@@ -1484,25 +1916,51 @@ exports.cleanupTempOrders = require("firebase-functions/v2").scheduler.onSchedul
   timeZone: "Asia/Kolkata"
 }, async () => {
   try {
-    const now = admin.firestore.Timestamp.now();
-    
-    const expiredOrders = await admin.firestore()
+    const now = Timestamp.now();
+    const trackingLimitCutoff = Timestamp.fromMillis(
+      now.toMillis() - 24 * 60 * 60 * 1000
+    );
+    const reviewLimitCutoff = Timestamp.fromMillis(
+      now.toMillis() - 30 * 24 * 60 * 60 * 1000
+    );
+    const expiredOrders = await getFirestore()
       .collection("tempOrders")
       .where("expiresAt", "<", now)
+      .limit(400)
       .get();
-    
-    if (expiredOrders.empty) {
-      console.log("No expired temp orders to clean up");
-      return;
+
+    const expiredTrackingLimits = await getFirestore()
+      .collection("orderTrackingLimits")
+      .where("updatedAt", "<", trackingLimitCutoff)
+      .limit(100)
+      .get();
+    const expiredReviewLimits = await getFirestore()
+      .collection("reviewSubmissionLimits")
+      .where("updatedAt", "<", reviewLimitCutoff)
+      .limit(400)
+      .get();
+
+    for (let offset = 0; offset < expiredOrders.docs.length; offset += 20) {
+      await Promise.all(expiredOrders.docs.slice(offset, offset + 20).map(doc =>
+        deleteTempOrderAndReleasePromo(getFirestore(), doc.ref)
+      ));
     }
-    
-    const batch = admin.firestore().batch();
-    expiredOrders.docs.forEach(doc => {
+
+    const batch = getFirestore().batch();
+    expiredTrackingLimits.docs.forEach(doc => {
       batch.delete(doc.ref);
     });
-    
-    await batch.commit();
-    console.log(`🗑️ Cleaned up ${expiredOrders.size} expired temp orders`);
+    expiredReviewLimits.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    if (!expiredTrackingLimits.empty || !expiredReviewLimits.empty) {
+      await batch.commit();
+    }
+
+    console.log(
+      `Cleaned up ${expiredOrders.size} expired temp orders, ${expiredTrackingLimits.size} IP limits, and ${expiredReviewLimits.size} review limits.`
+    );
     
   } catch (error) {
     console.error("Error cleaning up temp orders:", error);
@@ -1519,7 +1977,8 @@ exports.submitCareerApplication = onCall(
     ],
     maxInstances: 5,
     memory: "512MiB",
-    timeoutSeconds: 60
+    timeoutSeconds: 60,
+    secrets: [GMAIL_PASS]
   },
   async (request) => {
     const data = request.data || {};
@@ -1599,7 +2058,7 @@ exports.submitCareerApplication = onCall(
       throw new HttpsError("failed-precondition", "Unable to verify the application request.");
     }
     const ipHash = crypto.createHash("sha256").update(clientIp).digest("hex");
-    const rateLimitRef = admin.firestore().collection("careerApplicationLimits").doc(ipHash);
+    const rateLimitRef = getFirestore().collection("careerApplicationLimits").doc(ipHash);
     const now = Date.now();
     const rateWindowMs = 15 * 60 * 1000;
 
@@ -1610,7 +2069,7 @@ exports.submitCareerApplication = onCall(
     let jobRef = null;
     let jobTitle = "General introduction";
     if (jobId) {
-      jobRef = admin.firestore().collection("careerOpenings").doc(jobId);
+      jobRef = getFirestore().collection("careerOpenings").doc(jobId);
       const jobSnapshot = await jobRef.get();
       if (!jobSnapshot.exists) {
         throw new HttpsError("not-found", "This job opening is no longer available.");
@@ -1622,9 +2081,9 @@ exports.submitCareerApplication = onCall(
       jobTitle = job.title;
     }
 
-    const applicationRef = admin.firestore().collection("careerApplications").doc();
+    const applicationRef = getFirestore().collection("careerApplications").doc();
     const storagePath = `career-applications/${applicationRef.id}/${filename}`;
-    const resumeFile = admin.storage().bucket().file(storagePath);
+    const resumeFile = getStorage().bucket().file(storagePath);
     try {
       await resumeFile.save(resumeBuffer, {
         resumable: false,
@@ -1634,7 +2093,7 @@ exports.submitCareerApplication = onCall(
           cacheControl: "private, max-age=0, no-transform"
         }
       });
-      await admin.firestore().runTransaction(async (transaction) => {
+      await getFirestore().runTransaction(async (transaction) => {
         const rateLimitSnapshot = await transaction.get(rateLimitRef);
         const rateLimit = rateLimitSnapshot.data();
         const windowStartedAt = rateLimit?.windowStartedAt || 0;
@@ -1665,16 +2124,16 @@ exports.submitCareerApplication = onCall(
           resumeContentType: expectedTypes[extension],
           resumeSize: resumeBuffer.length,
           resumePath: storagePath,
-          submittedAt: admin.firestore.FieldValue.serverTimestamp()
+          submittedAt: FieldValue.serverTimestamp()
         });
         transaction.set(rateLimitRef, {
           windowStartedAt: currentCount ? windowStartedAt : now,
           count: currentCount + 1,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          updatedAt: FieldValue.serverTimestamp()
         });
         if (jobRef) {
           transaction.update(jobRef, {
-            applicationCount: admin.firestore.FieldValue.increment(1)
+            applicationCount: FieldValue.increment(1)
           });
         }
       });
@@ -1738,7 +2197,7 @@ exports.submitCareerApplication = onCall(
 
 exports.getCareerApplications = onCall(async (request) => {
   await requireCareerAdmin(request);
-  let query = admin.firestore().collection("careerApplications");
+  let query = getFirestore().collection("careerApplications");
   const jobId = request.data?.jobId;
   if (jobId !== undefined && jobId !== null) {
     if (typeof jobId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(jobId)) {
@@ -1770,6 +2229,11 @@ exports.getCareerApplications = onCall(async (request) => {
   };
 });
 
+exports.checkAdminAccess = onCall(async (request) => {
+  await requireCareerAdmin(request);
+  return { admin: true };
+});
+
 exports.getCareerApplicationsCount = onCall(
   {
     region: "asia-south1",
@@ -1787,10 +2251,10 @@ exports.getCareerApplicationsCount = onCall(
       throw new HttpsError("invalid-argument", "Choose a valid date for the application count.");
     }
 
-    const result = await admin.firestore()
+    const result = await getFirestore()
       .collection("careerApplications")
       .where("jobId", "==", null)
-      .where("submittedAt", ">", admin.firestore.Timestamp.fromMillis(since))
+      .where("submittedAt", ">", Timestamp.fromMillis(since))
       .count()
       .get();
 
@@ -1800,7 +2264,7 @@ exports.getCareerApplicationsCount = onCall(
 
 exports.getCareerOpenings = onCall(async () => {
   const today = careerDateInThalassery();
-  const snapshot = await admin.firestore()
+  const snapshot = await getFirestore()
     .collection("careerOpenings")
     .where("status", "==", "open")
     .orderBy("createdAt", "desc")
@@ -1830,7 +2294,7 @@ exports.getCareerOpenings = onCall(async () => {
 
 exports.getCareerOpeningsAdmin = onCall(async (request) => {
   await requireCareerAdmin(request);
-  const snapshot = await admin.firestore()
+  const snapshot = await getFirestore()
     .collection("careerOpenings")
     .orderBy("updatedAt", "desc")
     .limit(200)
@@ -1848,7 +2312,7 @@ exports.manageCareerOpening = onCall(async (request) => {
     if (typeof data.id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(data.id)) {
       throw new HttpsError("invalid-argument", "Choose a valid job opening.");
     }
-    await admin.firestore().collection("careerOpenings").doc(data.id).delete();
+    await getFirestore().collection("careerOpenings").doc(data.id).delete();
     return { success: true };
   }
   if (data.action !== "save") {
@@ -1856,8 +2320,8 @@ exports.manageCareerOpening = onCall(async (request) => {
   }
 
   const opening = readCareerOpening(data.opening || {});
-  const collection = admin.firestore().collection("careerOpenings");
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const collection = getFirestore().collection("careerOpenings");
+  const now = FieldValue.serverTimestamp();
   if (data.id !== undefined && data.id !== null) {
     if (typeof data.id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(data.id)) {
       throw new HttpsError("invalid-argument", "Choose a valid job opening.");
@@ -1886,7 +2350,7 @@ exports.getCareerApplicationResume = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Choose a valid application.");
   }
 
-  const applicationSnapshot = await admin.firestore()
+  const applicationSnapshot = await getFirestore()
     .collection("careerApplications")
     .doc(applicationId)
     .get();
@@ -1901,7 +2365,7 @@ exports.getCareerApplicationResume = onCall(async (request) => {
   }
 
   try {
-    const [resumeBuffer] = await admin.storage()
+    const [resumeBuffer] = await getStorage()
       .bucket()
       .file(application.resumePath)
       .download();

@@ -213,31 +213,6 @@ function initSubjectDropdown() {
     syncSelection();
 }
 
-// Contact Form Submission
-function submitContactForm(event) {
-    event.preventDefault();
-    
-    const formData = {
-        name: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value,
-        subject: document.getElementById('subject').value,
-        message: document.getElementById('message').value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        status: 'new'
-    };
-    
-    db.collection('contactSubmissions').add(formData)
-        .then((docRef) => {
-            alert('Message sent successfully! We will get back to you soon.');
-            document.getElementById('contactForm').reset();
-        })
-        .catch((error) => {
-            console.error("Error sending message:", error);
-            alert('Error sending message. Please try again.');
-        });
-}
-
 // Handle contact form submission with better error handling
 function handleContactFormSubmission() {
     if (!contactForm) return;
@@ -286,72 +261,26 @@ function handleContactFormSubmission() {
         return;
     }
     
-    // Save to Firestore with better error handling
-    const submissionData = {
-        name: name,
-        email: email,
-        phone: phone || 'Not provided',
-        subject: subject,
-        message: message,
-        userId: currentUser ? currentUser.uid : 'guest',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        page: 'contact',
-        timestamp: new Date().toISOString()
-    };
-    
-    // Try Firestore first, fallback to email if fails
-    db.collection('contactSubmissions').add(submissionData)
-        .then((docRef) => {
-            console.log('Form submitted successfully with ID:', docRef.id);
-            
-            // Track successful submission
-            if (currentUser) {
-                db.collection('analytics').add({
-                    type: 'contact_form_submission',
-                    userId: currentUser.uid,
-                    page: 'contact',
-                    subject: subject,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).catch(analyticsError => {
-                    console.warn('Analytics tracking failed:', analyticsError);
-                });
-            }
-            
+    window.functions.httpsCallable('submitContactMessage')({
+        name: String(name).trim(),
+        email: String(email).trim(),
+        phone: String(phone || '').trim(),
+        subject: String(subject).trim(),
+        message: String(message).trim()
+    })
+        .then(() => {
             showFormSuccessMessage();
             contactForm.reset();
         })
         .catch((error) => {
-            console.error("Error submitting contact form to Firestore:", error);
-            
-            // Fallback: Try to send via email API or show alternative contact methods
-            if (error.code === 'unavailable' || error.code === 'failed-precondition') {
-                showFormErrorMessage('Network issue. Please try again or contact us directly at info@hexaanatura.com');
-            } else {
-                showFormErrorMessage('Error submitting form. Please try again or contact us directly.');
-            }
-            
-            // Also save to localStorage as backup
-            saveToLocalStorage(submissionData);
+            console.error("Error submitting contact form:", error.code || "unknown");
+            showFormErrorMessage(error.code === 'functions/resource-exhausted'
+                ? 'Too many messages were submitted. Please wait and try again.'
+                : 'Error submitting form. Please try again or contact us directly.');
         })
         .finally(() => {
             resetSubmitButton(submitBtn, originalText);
         });
-}
-
-// Save form data to localStorage as backup
-function saveToLocalStorage(formData) {
-    try {
-        const submissions = JSON.parse(localStorage.getItem('contactFormBackup') || '[]');
-        submissions.push({
-            ...formData,
-            localTimestamp: new Date().toISOString(),
-            id: Date.now().toString()
-        });
-        localStorage.setItem('contactFormBackup', JSON.stringify(submissions));
-        console.log('Form data saved to localStorage as backup');
-    } catch (error) {
-        console.error('Failed to save to localStorage:', error);
-    }
 }
 
 // Reset submit button to original state

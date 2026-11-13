@@ -133,156 +133,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Fetch Order from Firebase (Same logic as orders management page)
+  // Tracking is served by a callable so private order documents are never public.
   async function fetchOrderFromFirebase(orderId, email) {
-    try {
-      console.log("Searching for order:", orderId, "with email:", email);
-      
-      const db = firebase.firestore();
-      let foundOrder = null;
-
-      // First, try to find in main orders collection
-      console.log("Checking main orders collection...");
-      const mainOrdersQuery = await db.collection("orders")
-        .where("orderId", "==", orderId)
-        .limit(1)
-        .get();
-
-      if (!mainOrdersQuery.empty) {
-        console.log("Found order in main collection");
-        const orderDoc = mainOrdersQuery.docs[0];
-        const orderData = orderDoc.data();
-        
-        // Check if email matches
-        if (orderData.email && orderData.email.toLowerCase() === email) {
-          foundOrder = {
-            ...orderData,
-            id: orderDoc.id,
-            source: 'main',
-            userId: orderData.userId || null
-          };
-        }
-      }
-
-      // If not found in main collection, search in all users' orders
-      if (!foundOrder) {
-        console.log("Searching in all users' orders...");
-        
-        // Get all users
-        const usersSnapshot = await db.collection("users").get();
-        
-        if (!usersSnapshot.empty) {
-          console.log(`Found ${usersSnapshot.size} users to search`);
-          
-          // Search through each user's orders
-          for (const userDoc of usersSnapshot.docs) {
-            const userOrdersQuery = await db.collection("users")
-              .doc(userDoc.id)
-              .collection("orders")
-              .where("orderId", "==", orderId)
-              .limit(1)
-              .get();
-
-            if (!userOrdersQuery.empty) {
-              const orderDoc = userOrdersQuery.docs[0];
-              const orderData = orderDoc.data();
-              
-              // Check if email matches
-              if (orderData.email && orderData.email.toLowerCase() === email) {
-                foundOrder = {
-                  ...orderData,
-                  id: orderDoc.id,
-                  source: 'user',
-                  userId: userDoc.id
-                };
-                console.log("Found order in user's collection");
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // Also check by Firebase document ID
-      if (!foundOrder) {
-        console.log("Checking by document ID...");
-        
-        // Try direct document lookup in main orders
-        try {
-          const orderDoc = await db.collection("orders").doc(orderId).get();
-          if (orderDoc.exists) {
-            const orderData = orderDoc.data();
-            if (orderData.email && orderData.email.toLowerCase() === email) {
-              foundOrder = {
-                ...orderData,
-                id: orderDoc.id,
-                source: 'main',
-                userId: orderData.userId || null
-              };
-              console.log("Found order by document ID in main collection");
-            }
-          }
-        } catch (e) {
-          console.log("Not found by document ID in main collection");
-        }
-      }
-
-      // If still not found, search users by email and then check their orders
-      if (!foundOrder) {
-        console.log("Searching by user email...");
-        
-        // Find user by email
-        const usersByEmailQuery = await db.collection("users")
-          .where("email", "==", email)
-          .limit(1)
-          .get();
-
-        if (!usersByEmailQuery.empty) {
-          const userDoc = usersByEmailQuery.docs[0];
-          console.log(`Found user: ${userDoc.id}`);
-          
-          // Search user's orders by orderId
-          const userOrdersQuery = await db.collection("users")
-            .doc(userDoc.id)
-            .collection("orders")
-            .where("orderId", "==", orderId)
-            .limit(1)
-            .get();
-
-          if (!userOrdersQuery.empty) {
-            const orderDoc = userOrdersQuery.docs[0];
-            const orderData = orderDoc.data();
-            foundOrder = {
-              ...orderData,
-              id: orderDoc.id,
-              source: 'user',
-              userId: userDoc.id
-            };
-            console.log("Found order in user's collection via email search");
-          }
-        }
-      }
-
-      if (!foundOrder) {
-        console.log("Order not found");
-        return {
-          success: false,
-          message: 'No order found with the provided ID and email. Please check your details.'
-        };
-      }
-
-      console.log("Order found:", foundOrder);
-      
-      // Process order data to match expected format
-      return processOrderData(foundOrder);
-
-    } catch (error) {
-      console.error('Firebase Error:', error);
+    const getOrderTracking = window.functions.httpsCallable('getOrderTracking');
+    const response = await getOrderTracking({ orderId, email });
+    if (!response.data?.success || !response.data.order) {
       return {
         success: false,
         message: 'No order found with the provided ID and email. Please check your details.'
       };
     }
+
+    return processOrderData(response.data.order);
   }
 
   // Process order data to match expected format

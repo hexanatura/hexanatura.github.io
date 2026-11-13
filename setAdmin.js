@@ -1,15 +1,27 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");  // rename if needed
+const { createRequire } = require("node:module");
+const requireFunctions = createRequire(require.resolve("./functions/package.json"));
+const { initializeApp } = requireFunctions("firebase-admin/app");
+const { getAuth } = requireFunctions("firebase-admin/auth");
+const { FieldValue, getFirestore } = requireFunctions("firebase-admin/firestore");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+initializeApp();
 
 async function setAdmin() {
-  const uid = "hTN0c8z381aFrQYC5ZkbPx7bG3E3";
+  const uid = process.env.ADMIN_UID;
+  if (!uid || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
+    throw new Error("Set ADMIN_UID to the intended Firebase Auth user ID.");
+  }
 
-  await admin.auth().setCustomUserClaims(uid, { admin: true });
-  console.log("Admin claim set for:", uid);
+  const user = await getAuth().getUser(uid);
+  await getAuth().setCustomUserClaims(uid, { ...user.customClaims, admin: true });
+  await getFirestore().collection("admins").doc(uid).set({
+    admin: true,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  console.log("Administrator access configured.");
 }
 
-setAdmin().catch(console.error);
+setAdmin().catch((error) => {
+  console.error("Unable to configure administrator access:", error.message);
+  process.exitCode = 1;
+});
