@@ -82,21 +82,31 @@
   }
   </script>
   
-  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link href="https://fonts.cdnfonts.com/css/akira-expanded" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Quicksand:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Shadow+Into+Light&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://ik.imagekit.io">
+  <link rel="preload" as="font" href="https://fonts.cdnfonts.com/s/37506/Akira%20Expanded%20Demo.woff" type="font/woff" crossorigin>
+  <link rel="preload" as="image" href="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(9)%20(1).png?updatedAt=1756992468273&amp;tr=w-500,q-75,f-auto" fetchpriority="high">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Quicksand:wght@300;400;500;600&family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-functions-compat.js"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-functions-compat.js"></script>
   
 <style>
+    @font-face {
+      font-family: 'Akira Expanded';
+      font-style: normal;
+      font-weight: 800;
+      font-display: swap;
+      src: url('https://fonts.cdnfonts.com/s/37506/Akira%20Expanded%20Demo.woff') format('woff');
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -3640,7 +3650,7 @@
     }
 
    .rectangle-banner {
-      background: url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883') center/cover no-repeat;
+      background: url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-1920,q-75,f-auto') center/cover no-repeat;
       padding: 50px;
       width: 95%;
       max-width: 1800px;
@@ -3759,7 +3769,7 @@
 
     .products-section {
       padding: 80px 5%;
-      background: url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883') center/cover no-repeat;
+      background: url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-1920,q-75,f-auto') center/cover no-repeat;
       border-radius: 50px;
       margin: 80px auto;
       max-width: 1400px;
@@ -7405,7 +7415,7 @@
     }
 
     #productsShowcase .rating-count {
-      color: #8a7c6e;
+      color: #6b5b4c;
       font-family: 'Quicksand', sans-serif;
       font-size: 12px;
     }
@@ -8100,7 +8110,7 @@
     }
 
     #productsShowcase .rating-count {
-      color: #837668;
+      color: #6b5b4c;
       font-family: 'Quicksand', sans-serif;
       font-size: 11px;
       font-weight: 600;
@@ -9361,22 +9371,22 @@
       <li><a href="careers.html">Career</a></li>
     </ul>
     <div class="logo">
-      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119" alt="Logo of Natura Honey brand with stylized text and honeycomb design" />
+      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119&amp;tr=w-320,q-80,f-auto" alt="Logo of Natura Honey brand with stylized text and honeycomb design" width="112" height="63" />
     </div>
     <div class="nav-icons">
       <div class="icon" id="likeIcon">
-        <i class="far fa-heart" aria-label="Favorites"></i>
+        <i class="far fa-heart" aria-hidden="true"></i>
         <span class="badge hidden" id="likeCount">0</span>
       </div>
       <div class="icon" id="cartIcon">
-        <i class="fas fa-shopping-cart" aria-label="Shopping cart"></i>
+        <i class="fas fa-shopping-cart" aria-hidden="true"></i>
         <span class="badge hidden" id="cartCount">0</span>
       </div>
       <div class="icon" id="whatsappIcon">
-        <i class="fab fa-whatsapp" aria-label="WhatsApp"></i>
+        <i class="fab fa-whatsapp" aria-hidden="true"></i>
       </div>
       <div class="icon user-dropdown" id="userIcon">
-        <i class="fas fa-user" aria-label="User account"></i>
+        <i class="fas fa-user" aria-hidden="true"></i>
         <div class="dropdown-menu" id="userDropdown">
           <a href="#" class="dropdown-item" id="profileLink">
             <i class="fas fa-user-circle"></i> Profile
@@ -9397,7 +9407,7 @@
       </button>
       <div class="quick-view-body">
         <div class="quick-view-image">
-          <img src="" alt="" id="quickViewImage">
+          <img src="" alt="" id="quickViewImage" width="350" height="480">
         </div>
         <div class="quick-view-details">
           <h2 class="quick-view-title" id="quickViewTitle"></h2>
@@ -9493,7 +9503,7 @@
     <button class="close-login" id="closeLogin">&times;</button>
     <div class="login-header">
       <button class="back-btn" id="backBtn"><i class="fas fa-arrow-left"></i></button>
-      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119" alt="Natura Honey Logo">
+      <img src="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(8)%20(1).png?updatedAt=1756876605119&amp;tr=w-320,q-80,f-auto" alt="Natura Honey Logo" width="112" height="63">
       <h2 id="modalTitle">Welcome Back</h2>
       <p id="modalSubtitle">Sign in to your account</p>
     </div>
@@ -9531,9 +9541,9 @@
   </div>
 
   <!-- Main Content -->
-  <div class="content-wrapper" id="mainContent">
+  <main class="content-wrapper" id="mainContent">
     <div class="banner-wrapper">
-      <div class="rectangle-banner" aria-label="Scrolling banner with repeated text Natura Honey on honeycomb background">
+      <div class="rectangle-banner" aria-hidden="true">
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-left" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
@@ -9551,38 +9561,38 @@
     <div class="circle-images" id="categories" role="list" aria-label="Product categories with circular images">
       <div class="circle-item" role="listitem">
         <div class="circle-image-wrap">
-          <img src="https://ik.imagekit.io/hexaanatura/sweetner.png?updatedAt=1757008552752" alt="Close-up image of natural sweetener honey dripping from a wooden honey dipper into a glass jar" />
+          <img src="https://ik.imagekit.io/hexaanatura/sweetner.png?updatedAt=1757008552752&amp;tr=w-320,h-320,q-75,f-auto" alt="Close-up image of natural sweetener honey dripping from a wooden honey dipper into a glass jar" width="150" height="150" />
         </div>
         <div class="circle-title">Natural Sweetner</div>
       </div>
       <div class="circle-item" role="listitem">
         <div class="circle-image-wrap">
-          <img src="https://ik.imagekit.io/hexaanatura/skin%20and%20hair%20care.png?updatedAt=1757008441145" alt="Honey-based skin and hair care products arranged with flowers and honeycombs on a wooden surface" />
+          <img src="https://ik.imagekit.io/hexaanatura/skin%20and%20hair%20care.png?updatedAt=1757008441145&amp;tr=w-320,h-320,q-75,f-auto" alt="Honey-based skin and hair care products arranged with flowers and honeycombs on a wooden surface" width="150" height="150" />
         </div>
         <div class="circle-title">Skin & Hair Care</div>
       </div>
       <div class="circle-item" role="listitem">
         <div class="circle-image-wrap">
-          <img src="https://ik.imagekit.io/hexaanatura/Antioxidant.png" alt="Honey jar with antioxidant-rich honey surrounded by fresh berries and herbs on rustic table" />
+          <img src="https://ik.imagekit.io/hexaanatura/Antioxidant.png?tr=w-320,h-320,q-75,f-auto" alt="Honey jar with antioxidant-rich honey surrounded by fresh berries and herbs on rustic table" width="150" height="150" />
         </div>
         <div class="circle-title">Anti<br class="mobile-category-break" />oxidant</div>
       </div>
       <div class="circle-item" role="listitem">
         <div class="circle-image-wrap">
-          <img src="https://ik.imagekit.io/hexaanatura/sleep%20aid.png?updatedAt=1757008266335" alt="Calming honey sleep aid product with lavender flowers and a nighttime setting" />
+          <img src="https://ik.imagekit.io/hexaanatura/sleep%20aid.png?updatedAt=1757008266335&amp;tr=w-320,h-320,q-75,f-auto" alt="Calming honey sleep aid product with lavender flowers and a nighttime setting" width="150" height="150" />
         </div>
         <div class="circle-title">Sleeping<br class="mobile-category-break" /> Aid</div>
       </div>
     </div>
 
     <div class="banner-wrapper" style="margin-top:80px;">
-      <div class="rectangle-banner" aria-label="Scrolling banner with repeated text Natura Honey and overlapping honey jar image">
+      <div class="rectangle-banner">
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-left" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-left" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
-        <img src="https://ik.imagekit.io/hexaanatura/SEC3%20(1).jpg" alt="Large artistic honey jar with honeycomb pattern overlay blending into background" class="second-banner-image" />
+        <img src="https://ik.imagekit.io/hexaanatura/SEC3%20(1).jpg?tr=w-1400,q-75,f-auto" alt="Large artistic honey jar with honeycomb pattern overlay blending into background" class="second-banner-image" width="1200" height="596" loading="lazy" decoding="async" />
       </div>
     </div>
 
@@ -9613,7 +9623,7 @@
         <div class="product-row" id="productRow" style="position: relative; z-index: 2;">
 <div class="product-card" data-category="crystal" data-id="1" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725" alt="Natura AGMARK Honey, 1 kg glass pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 1 kg glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9642,7 +9652,7 @@
 
 <div class="product-card" data-category="crystal" data-id="2" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443" alt="Natura AGMARK Honey, 500 g glass pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 500 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9671,7 +9681,7 @@
 
 <div class="product-card" data-category="crystal" data-id="3" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748" alt="Natura AGMARK Honey, 100 g glass pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 100 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">100g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9700,7 +9710,7 @@
 
 <div class="product-card" data-category="crystal" data-id="4" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792" alt="Natura AGMARK Honey, 50 g glass pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 50 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">50g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9729,7 +9739,7 @@
 
 <div class="product-card" data-category="premium" data-id="5" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459" alt="Natura AGMARK Honey, 1 kg PET pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 1 kg PET pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9758,7 +9768,7 @@
 
 <div class="product-card" data-category="premium" data-id="6" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598" alt="Natura AGMARK Honey, 500 g PET pack" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 500 g PET pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9799,14 +9809,14 @@
         </div>
         
         <div class="carousel-controls">
-            <button class="carousel-btn" id="prevBtn">
+            <button class="carousel-btn" id="prevBtn" aria-label="Previous customer review">
                 <i class="fas fa-chevron-left"></i>
             </button>
             
             <div class="carousel-dots" id="carouselDots">
             </div>
             
-            <button class="carousel-btn" id="nextBtn">
+            <button class="carousel-btn" id="nextBtn" aria-label="Next customer review">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -9886,11 +9896,11 @@
           Rooted in Kerala, our story began with beekeeping in 1989. Hexa Apiarium Pvt. Ltd. was incorporated in 1993, and the Natura name has been part of our work since those early days. From Thalassery, we continue to share Natura Honey with customers across Kerala and beyond.
         </p>
 
-      <a class="our-team-read-more" href="about.html">Read More <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+      <a class="our-team-read-more" href="about.html">Read more about our story <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
       
       <hr style="width:50px; border:2px solid #556b2f; margin:20px auto 0;">
     </div>
-  </div>
+  </main>
 
   <!-- Profile Page -->
   <div class="profile-page" id="profilePage">
@@ -10187,8 +10197,8 @@
       <div id="footer-placeholder"></div>
 
 
-<script src="common.js?v=20261107-store-pricing"></script>
-<script src="index.js?v=20261103-quickview-meta"></script>
+<script defer src="common.js?v=20261107-store-pricing"></script>
+<script defer src="index.js?v=20261103-quickview-meta"></script>
 
   </body>
 </html>

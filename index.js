@@ -281,43 +281,60 @@ function initializeBannerImages() {
     
     const rotatingImage = document.createElement("img");
     rotatingImage.className = "banner-overlay-outside";
+    rotatingImage.decoding = "async";
+    rotatingImage.loading = "eager";
+    rotatingImage.fetchPriority = "high";
     bannerWrapper.appendChild(rotatingImage);
 
     const imagesConfig = [
         {
-            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(9)%20(1).png?updatedAt=1756992468273",
+            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(9)%20(1).png?updatedAt=1756992468273&tr=w-500,q-75,f-auto",
+            width: 364,
+            height: 766,
             top: "10px",
             alt: "Artistic honey jar with honeycomb pattern and golden glow"
         },
         {
-            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(2).png?updatedAt=1756995663739",
+            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(2).png?updatedAt=1756995663739&tr=w-740,q-75,f-auto",
+            width: 1075,
+            height: 1558,
             top: "-15px",
             alt: "Honey dipper dripping golden honey with honeycomb background"
         },
         {
-            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(4).png?updatedAt=1756995663681",
+            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(4).png?updatedAt=1756995663681&tr=w-840,q-75,f-auto",
+            width: 1192,
+            height: 1500,
             top: "-15px",
             alt: "Close-up of honeycomb cells filled with golden honey"
         },
         {
-            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(3).png?updatedAt=1756995663635",
+            src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(3).png?updatedAt=1756995663635&tr=w-800,q-75,f-auto",
+            width: 1075,
+            height: 1245,
             top: "-18px",
             alt: "Honey jar with honeycomb and floral decoration"
         }
     ];
 
     let index = 0;
+    function setImage(config) {
+        rotatingImage.width = config.width;
+        rotatingImage.height = config.height;
+        rotatingImage.src = config.src;
+        rotatingImage.alt = config.alt;
+        rotatingImage.style.top = config.top;
+    }
+
     function showImage(i) {
         const config = imagesConfig[i];
         rotatingImage.style.opacity = 0;
         setTimeout(() => {
-            rotatingImage.src = config.src;
-            rotatingImage.alt = config.alt;
-            rotatingImage.style.top = config.top;
+            setImage(config);
             rotatingImage.style.opacity = 1;
         }, 800);
     }
-    showImage(index);
+    setImage(imagesConfig[index]);
     setInterval(() => {
         index = (index + 1) % imagesConfig.length;
         showImage(index);
