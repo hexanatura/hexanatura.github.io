@@ -296,6 +296,7 @@ function initializeBannerImages() {
         },
         {
             src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(2).png?updatedAt=1756995663739&tr=w-740,q-75,f-auto",
+            mobileSrc: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(2).png?updatedAt=1756995663739&tr=w-600,q-75,f-auto",
             width: 1075,
             height: 1558,
             top: "-15px",
@@ -303,6 +304,7 @@ function initializeBannerImages() {
         },
         {
             src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(4).png?updatedAt=1756995663681&tr=w-840,q-75,f-auto",
+            mobileSrc: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(4).png?updatedAt=1756995663681&tr=w-600,q-75,f-auto",
             width: 1192,
             height: 1500,
             top: "-15px",
@@ -310,6 +312,7 @@ function initializeBannerImages() {
         },
         {
             src: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(3).png?updatedAt=1756995663635&tr=w-800,q-75,f-auto",
+            mobileSrc: "https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(3).png?updatedAt=1756995663635&tr=w-600,q-75,f-auto",
             width: 1075,
             height: 1245,
             top: "-18px",
@@ -321,7 +324,9 @@ function initializeBannerImages() {
     function setImage(config) {
         rotatingImage.width = config.width;
         rotatingImage.height = config.height;
-        rotatingImage.src = config.src;
+        rotatingImage.src = window.matchMedia("(max-width: 767px)").matches && config.mobileSrc
+            ? config.mobileSrc
+            : config.src;
         rotatingImage.alt = config.alt;
         rotatingImage.style.top = config.top;
     }
@@ -329,6 +334,7 @@ function initializeBannerImages() {
     function showImage(i) {
         const config = imagesConfig[i];
         rotatingImage.style.opacity = 0;
+        rotatingImage.fetchPriority = "low";
         setTimeout(() => {
             setImage(config);
             rotatingImage.style.opacity = 1;

@@ -84,11 +84,11 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://ik.imagekit.io">
   <link rel="preload" as="font" href="https://fonts.cdnfonts.com/s/37506/Akira%20Expanded%20Demo.woff" type="font/woff" crossorigin>
   <link rel="preload" as="image" href="https://ik.imagekit.io/hexaanatura/Adobe%20Express%20-%20file%20(9)%20(1).png?updatedAt=1756992468273&amp;tr=w-500,q-75,f-auto" fetchpriority="high">
+  <link rel="preload" as="image" href="https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&amp;tr=w-960,q-75,f-auto" media="(max-width: 767px)" fetchpriority="high">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Quicksand:wght@300;400;500;600&family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
@@ -7143,7 +7143,7 @@
       border-radius: clamp(20px, 3vw, 30px);
       background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(255, 253, 247, 0.96)),
-        url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883') center / cover no-repeat;
+        url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-1920,q-75,f-auto') center / cover no-repeat;
       box-shadow: 0 12px 34px rgba(67, 43, 26, 0.08);
     }
 
@@ -8337,7 +8337,7 @@
     #productsShowcase > .rectangle-banner {
       background:
         linear-gradient(rgba(248, 243, 230, 0.48), rgba(248, 243, 230, 0.48)),
-        url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883') center / cover no-repeat;
+        url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-1920,q-75,f-auto') center / cover no-repeat;
     }
 
     #productsShowcase > .rectangle-banner .banner-row {
@@ -9351,6 +9351,25 @@
         height: 42px !important;
       }
     }
+
+    @media (max-width: 767px) {
+      .rectangle-banner,
+      .products-section {
+        background-image: url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-960,q-75,f-auto');
+      }
+
+      #productsShowcase {
+        background-image:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(255, 253, 247, 0.96)),
+          url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-960,q-75,f-auto');
+      }
+
+      #productsShowcase > .rectangle-banner {
+        background-image:
+          linear-gradient(rgba(248, 243, 230, 0.48), rgba(248, 243, 230, 0.48)),
+          url('https://ik.imagekit.io/hexaanatura/Desktop%20-%201.jpg?updatedAt=1756993544883&tr=w-960,q-75,f-auto');
+      }
+    }
   </style>
   <link rel="stylesheet" href="shared-header.css?v=20261023-responsive-2" />
  </head>
@@ -9592,7 +9611,10 @@
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-left" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
         <div class="banner-row slide-right" aria-hidden="true">NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY NATURA HONEY</div>
-        <img src="https://ik.imagekit.io/hexaanatura/SEC3%20(1).jpg?tr=w-1400,q-75,f-auto" alt="Large artistic honey jar with honeycomb pattern overlay blending into background" class="second-banner-image" width="1200" height="596" loading="lazy" decoding="async" />
+        <picture>
+          <source media="(max-width: 767px)" srcset="https://ik.imagekit.io/hexaanatura/SEC3%20(1).jpg?tr=w-900,q-75,f-auto" />
+          <img src="https://ik.imagekit.io/hexaanatura/SEC3%20(1).jpg?tr=w-1400,q-75,f-auto" alt="Large artistic honey jar with honeycomb pattern overlay blending into background" class="second-banner-image" width="1200" height="596" loading="lazy" decoding="async" />
+        </picture>
       </div>
     </div>
 
@@ -9623,7 +9645,7 @@
         <div class="product-row" id="productRow" style="position: relative; z-index: 2;">
 <div class="product-card" data-category="crystal" data-id="1" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 1 kg glass pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g?updatedAt=1766222498725&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 1 kg glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9652,7 +9674,7 @@
 
 <div class="product-card" data-category="crystal" data-id="2" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 500 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg?updatedAt=1766222517443&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 500 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9681,7 +9703,7 @@
 
 <div class="product-card" data-category="crystal" data-id="3" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 100 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20100g?updatedAt=1766222470748&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 100 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">100g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9710,7 +9732,7 @@
 
 <div class="product-card" data-category="crystal" data-id="4" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 50 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%2050g?updatedAt=1766222568792&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 50 g glass pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">50g</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9739,7 +9761,7 @@
 
 <div class="product-card" data-category="premium" data-id="5" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 1 kg PET pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%201kg%20pet?updatedAt=1766222544459&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 1 kg PET pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">1Kg</div>
     <div class="overlay">Quick View</div>
   </div>
@@ -9768,7 +9790,7 @@
 
 <div class="product-card" data-category="premium" data-id="6" data-out-of-stock="false">
   <div class="product-image-container">
-    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-660,q-75,f-auto" alt="Natura AGMARK Honey, 500 g PET pack" width="220" height="301" loading="lazy" decoding="async" />
+    <img src="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-660,q-75,f-auto" srcset="https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-220,q-75,f-auto 220w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-440,q-75,f-auto 440w, https://ik.imagekit.io/hexaanatura/Natura%20Agmark%20Honey%20500g%20pet?updatedAt=1766223840598&amp;tr=w-660,q-75,f-auto 660w" sizes="(max-width: 767px) 178px, 220px" alt="Natura AGMARK Honey, 500 g PET pack" width="220" height="301" loading="lazy" decoding="async" />
     <div class="product-weight">500g</div>
     <div class="overlay">Quick View</div>
   </div>
